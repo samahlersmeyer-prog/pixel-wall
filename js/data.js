@@ -36,7 +36,7 @@ function lum(h) {
   return 0.3 * ((n >> 16) & 255) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255);
 }
 function pickColor(s) {
-  if (lum(s.color) < 50 && lum(s.alt) > lum(s.color)) s.color = s.alt;
+  if (lum(s.color) < 25 && lum(s.alt) > lum(s.color)) s.color = s.alt;
   return s;
 }
 
