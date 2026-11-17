@@ -17,7 +17,7 @@
   #dot { width: 9px; height: 9px; border-radius: 50%; background: #444; display: inline-block; margin-left: 8px; }
   .preview { background: #000; border-radius: 12px; padding: 8px; border: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
   .preview canvas { width: 100%; aspect-ratio: 2 / 1; display: block; }
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0; }
+  .tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 14px 0; }
   .tiles button { padding: 12px 2px; font-size: 13px; }
   button { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
            font: inherit; padding: 12px 14px; cursor: pointer; }
@@ -51,7 +51,7 @@
 </style>
 </head>
 <body>
-<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v4</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v5</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
 
 <section id="setup" class="card hidden">
   <h2>Set up your wall</h2>
@@ -71,6 +71,8 @@
     <button data-tile="map">Map</button>
     <button data-tile="holiday">Holidays</button>
     <button data-tile="fun">Fun</button>
+    <button data-tile="weather">Weather</button>
+    <button data-tile="rotate">Rotate</button>
   </div>
   <p class="small" style="margin:-6px 2px 12px">Tap a tile to put it on the wall, then pick options below.</p>
 
@@ -144,6 +146,42 @@
     <div class="grid2" id="funs"></div>
   </section>
 
+  <section class="card" data-panel="weather">
+    <h2>Weather</h2>
+    <p class="small">Right now plus the next 3 days in Fort Wayne.</p>
+    <button class="primary" data-show="weather">Show weather</button>
+  </section>
+
+  <section class="card" data-panel="rotate">
+    <h2>Rotate</h2>
+    <p class="small">Cycle through several screens. Pick the ones to include:</p>
+    <div class="grid2" id="rotList" style="margin-bottom:12px"></div>
+    <div class="grid3" id="rotSecs">
+      <button data-secs="10">10 sec</button><button data-secs="20">20 sec</button><button data-secs="45">45 sec</button>
+    </div>
+    <button class="primary" id="rotGo">Start rotating</button>
+  </section>
+
+  <section class="card">
+    <h2>Display</h2>
+    <h3 style="margin-top:0">Screen style</h3>
+    <div class="grid2" id="dFrame">
+      <button data-frame="bezel">LED panel</button><button data-frame="glow">Glow fill</button>
+      <button data-frame="plain">Full black</button><button data-frame="stretch">Stretch to fill</button>
+    </div>
+    <h3>LED dots</h3>
+    <div class="grid3" id="dDots"><button data-dots="round">Round</button><button data-dots="square">Square</button><button data-dots="smooth">Smooth</button></div>
+    <h3>Center seam (where the 2 panels meet)</h3>
+    <div class="grid2" id="dSeam"><button data-seam="on">Show</button><button data-seam="off">Hide</button></div>
+    <h3>Night mode</h3>
+    <div class="grid2" id="dNight" style="margin-bottom:8px">
+      <button data-night="none">Off</button><button data-night="clock">Dim clock</button>
+      <button data-night="dim">Dim screen</button><button data-night="off">Screen off</button>
+    </div>
+    <div class="row"><input type="time" id="nStart" value="21:30"><input type="time" id="nEnd" value="06:30"></div>
+    <p class="small">From the first time to the second, every night.</p>
+  </section>
+
   <section class="card">
     <h2>Brightness</h2>
     <input type="range" id="bright" min="10" max="100" step="5">
@@ -157,13 +195,13 @@
 </main>
 
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=4';
-import { LedCanvas } from '../js/led-canvas.js?v=4';
-import { startData, TEAMS } from '../js/data.js?v=4';
-import { THEMES } from '../js/modes-holiday.js?v=4';
-import { FUN } from '../js/modes-fun.js?v=4';
-import { STATES } from '../js/usmap-data.js?v=4';
-import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=4';
+import { render, Frame } from '../js/renderer.js?v=5';
+import { LedCanvas } from '../js/led-canvas.js?v=5';
+import { startData, TEAMS } from '../js/data.js?v=5';
+import { THEMES } from '../js/modes-holiday.js?v=5';
+import { FUN } from '../js/modes-fun.js?v=5';
+import { STATES } from '../js/usmap-data.js?v=5';
+import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=5';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -275,6 +313,28 @@ function start() {
   };
 
   // ----- fun -----
+  // ----- rotate -----
+  const ROT = [['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],
+    ['countdown', 'Countdown'], ['map', 'Map'], ['holiday', 'Holiday'], ['fun', 'Fun'], ['message', 'Message']];
+  let rotDraft = null, rotSecs = 20;
+  ROT.forEach(([key, label]) => $('#rotList').appendChild(btn(label, { rot: key }, () => {
+    const cur = new Set(rotDraft || state.rotate?.modes || ['clock', 'weather', 'scoreboard', 'holiday', 'calendar']);
+    cur.has(key) ? cur.delete(key) : cur.add(key);
+    rotDraft = ROT.map(r => r[0]).filter(k => cur.has(k));
+    paint();
+  })));
+  $$('[data-secs]').forEach(b => b.onclick = () => { rotSecs = Number(b.dataset.secs); paint(); });
+  $('#rotGo').onclick = () => set({ mode: 'rotate', rotate: { modes: rotDraft || state.rotate?.modes || ['clock', 'weather', 'scoreboard', 'holiday', 'calendar'], seconds: rotSecs } });
+
+  // ----- display settings -----
+  const disp = patch => set({ display: { ...(state.display || {}), ...patch } });
+  $$('[data-frame]').forEach(b => b.onclick = () => disp({ frame: b.dataset.frame }));
+  $$('[data-dots]').forEach(b => b.onclick = () => disp({ dots: b.dataset.dots }));
+  $$('[data-seam]').forEach(b => b.onclick = () => disp({ seam: b.dataset.seam === 'on' }));
+  const night = () => ({ start: $('#nStart').value || '21:30', end: $('#nEnd').value || '06:30', level: 15 });
+  $$('[data-night]').forEach(b => b.onclick = () => disp({ night: b.dataset.night === 'none' ? { ...night(), on: false } : { ...night(), on: true, mode: b.dataset.night } }));
+  ['#nStart', '#nEnd'].forEach(sel => $(sel).onchange = () => { if (state.display?.night) disp({ night: { ...state.display.night, ...night() } }); });
+
   FUN.forEach(([key, label]) => $('#funs').appendChild(btn(label, { fun: key }, () => set({ mode: 'fun', fun: { view: key } }))));
 
   $('#bright').oninput = e => set({ brightness: Number(e.target.value) });
@@ -296,6 +356,15 @@ function start() {
 
   function paint() {
     const mode = tileOf(state.mode || 'message');
+    const rot = new Set(rotDraft || state.rotate?.modes || ['clock', 'weather', 'scoreboard', 'holiday', 'calendar']);
+    $$('[data-rot]').forEach(b => b.classList.toggle('on', rot.has(b.dataset.rot)));
+    $$('[data-secs]').forEach(b => b.classList.toggle('on', Number(b.dataset.secs) === rotSecs));
+    const d = state.display || {};
+    $$('[data-frame]').forEach(b => b.classList.toggle('on', b.dataset.frame === (d.frame || 'bezel')));
+    $$('[data-dots]').forEach(b => b.classList.toggle('on', b.dataset.dots === (d.dots || 'round')));
+    $$('[data-seam]').forEach(b => b.classList.toggle('on', (b.dataset.seam === 'on') === (d.seam !== false)));
+    $$('[data-night]').forEach(b => b.classList.toggle('on', d.night?.on ? b.dataset.night === d.night.mode : b.dataset.night === 'none'));
+    led.setStyle({ dots: d.dots || 'round', seam: d.seam !== false });
     $$('[data-tile]').forEach(b => b.classList.toggle('on', b.dataset.tile === mode));
     $$('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === draft.color));
     $$('[data-anim]').forEach(b => b.classList.toggle('on', b.dataset.anim === draft.anim));
@@ -318,6 +387,8 @@ function start() {
     if (first) {
       if (s.message) { draft = { ...draft, ...s.message }; $('#text').value = draft.text; }
       if (s.birthday) { $('#bdName').value = s.birthday.name || ''; $('#bdDate').value = s.birthday.date || ''; }
+      if (s.rotate?.seconds) rotSecs = s.rotate.seconds;
+      if (s.display?.night) { $('#nStart').value = s.display.night.start || '21:30'; $('#nEnd').value = s.display.night.end || '06:30'; }
       if (s.countdown) { $('#cdTitle').value = s.countdown.title || ''; $('#cdDate').value = s.countdown.date || ''; }
       first = false;
     }

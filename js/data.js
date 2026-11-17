@@ -146,6 +146,29 @@ export async function fetchWeather(lat = 41.08, lon = -85.14) {
   }
 }
 
+export async function fetchForecast(lat = 41.08, lon = -85.14) {
+  try {
+    const j = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&forecast_days=4&timezone=auto`).then(r => r.json());
+    const lab = c => (WX.find(([codes]) => codes.includes(c)) || [0, 'CLOUDY'])[1];
+    const days = j.daily.time.slice(1, 4).map((d, i) => ({
+      dow: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(d + 'T12:00:00').getDay()],
+      hi: j.daily.temperature_2m_max[i + 1], lo: j.daily.temperature_2m_min[i + 1], label: lab(j.daily.weather_code[i + 1]),
+    }));
+    return { now: { temp: j.current.temperature_2m, label: lab(j.current.weather_code) }, days };
+  } catch (e) {
+    console.warn('forecast failed', e);
+    return null;
+  }
+}
+
+// Is this mode on screen, or part of the rotation?
+export function usesMode(st, m) {
+  if (st.mode === m) return true;
+  if (st.mode !== 'rotate') return false;
+  const list = st.rotate?.modes?.length ? st.rotate.modes : ['clock', 'weather', 'scoreboard', 'holiday', 'calendar'];
+  return list.includes(m);
+}
+
 // Keeps data fresh for whatever mode is showing. Calls onData(data) on change.
 export function startData(getState, onData) {
   const data = {};
@@ -155,12 +178,12 @@ export function startData(getState, onData) {
     const st = getState() || {};
     const team = TEAMS.find(t => t.key === st.scoreboard?.team) || TEAMS[0];
     if (team.key !== lastTeamKey) { data.game = null; lastTeamKey = team.key; onData(data); }
-    if (st.mode === 'scoreboard') {
+    if (usesMode(st, 'scoreboard')) {
       data.game = await fetchGame(team);
       onData(data);
     }
     const live = data.game?.state === 'in';
-    gameTimer = setTimeout(pollGame, st.mode === 'scoreboard' ? (live ? 20000 : 120000) : 5000);
+    gameTimer = setTimeout(pollGame, usesMode(st, 'scoreboard') ? (live ? 20000 : 120000) : 5000);
   }
   async function pollWeather() {
     const w = await fetchWeather();
@@ -171,17 +194,22 @@ export function startData(getState, onData) {
   async function pollExtras() {
     const st = getState() || {};
     const stale = (k, ms) => !stamps[k] || Date.now() - stamps[k] > ms;
-    if (st.mode === 'cfp' && stale('cfp', 30 * 60 * 1000)) {
+    if (usesMode(st, 'weather') && stale('fc', 20 * 60 * 1000)) {
+      stamps.fc = Date.now();
+      const fc = await fetchForecast();
+      if (fc) { data.forecast = fc; onData(data); } else stamps.fc = 0;
+    }
+    if (usesMode(st, 'cfp') && stale('cfp', 30 * 60 * 1000)) {
       stamps.cfp = Date.now();
       data.cfp = await fetchCfp(); onData(data);
     }
-    if (st.mode === 'map' && (st.map?.view || 'weather') === 'weather' && stale('map', 20 * 60 * 1000)) {
+    if (usesMode(st, 'map') && (st.map?.view || 'weather') === 'weather' && stale('map', 20 * 60 * 1000)) {
       stamps.map = Date.now();
-      const { STATES } = await import('./usmap-data.js?v=4');
+      const { STATES } = await import('./usmap-data.js?v=5');
       const temps = await fetchMapWeather(STATES);
       if (temps) { data.mapWeather = temps; onData(data); } else stamps.map = 0;
     }
-    if (st.mode === 'holiday' && st.holiday?.theme === 'gameday' && stale('gd', 120000)) {
+    if (usesMode(st, 'holiday') && st.holiday?.theme === 'gameday' && !usesMode(st, 'scoreboard') && stale('gd', 120000)) {
       stamps.gd = Date.now();
       const team = TEAMS.find(t => t.key === st.scoreboard?.team) || TEAMS[1];
       data.game = await fetchGame(team); onData(data);

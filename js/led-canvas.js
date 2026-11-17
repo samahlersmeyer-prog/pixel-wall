@@ -1,6 +1,6 @@
 // Draws a 128x64 frame onto a canvas so it looks like a real LED panel:
 // round dots, dark "off" LEDs, and a seam down the middle where the two panels meet.
-import { W, H } from './renderer.js?v=4';
+import { W, H } from './renderer.js?v=5';
 
 export class LedCanvas {
   constructor(canvas, { seam = true } = {}) {
@@ -11,6 +11,7 @@ export class LedCanvas {
     this.sctx = this.small.getContext('2d');
     this.img = this.sctx.createImageData(W, H);
     this.seam = seam;
+    this.dots = 'round';
     this.brightness = 1;
     this.resize();
   }
@@ -30,12 +31,15 @@ export class LedCanvas {
     m.fillRect(0, 0, mask.width, mask.height);
     m.globalCompositeOperation = 'destination-out';
     const r = cell * 0.4;
-    if (cell >= 3) {
+    if (cell >= 3 && this.dots === 'round') {
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         m.beginPath();
         m.arc(x * cell + cell / 2, y * cell + cell / 2, r, 0, Math.PI * 2);
         m.fill();
       }
+    } else if (cell >= 3 && this.dots === 'square') {
+      const g = Math.max(1, Math.round(cell * 0.12));
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) m.fillRect(x * cell + g, y * cell + g, cell - g * 2, cell - g * 2);
     } else {
       m.fillRect(0, 0, mask.width, mask.height);
     }
@@ -45,6 +49,12 @@ export class LedCanvas {
       m.fillRect(W / 2 * cell - 1, 0, 2, mask.height);
     }
     this.mask = mask;
+  }
+
+  setStyle({ dots = 'round', seam = true } = {}) {
+    if (dots === this.dots && seam === this.seam) return;
+    this.dots = dots; this.seam = seam;
+    this.resize();
   }
 
   draw(frame) {

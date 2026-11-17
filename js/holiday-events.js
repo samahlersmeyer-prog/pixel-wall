@@ -1,8 +1,8 @@
 // Surprise scenes that play every so often on each holiday theme
 // (Santa flies by, a snowman gets built, a ghost says BOO...).
 // Every scene is drawn from the time alone, so it looks the same on every screen.
-import { W, H, hsv } from './renderer.js?v=4';
-import { fireworks } from './modes-holiday.js?v=4';
+import { W, H, hsv, Frame } from './renderer.js?v=5';
+import { fireworks } from './modes-holiday.js?v=5';
 
 const rnd = n => { const x = Math.sin(n * 78.233) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -346,20 +346,180 @@ function bigPlay(f, lt, p, ctx) {
   }
 }
 
+
+// ---------------- more scenes ----------------
+function champagne(f, lt, p, ctx) {
+  const shake = p < 0.3 ? Math.sin(lt / 30) * 1.5 : 0;
+  const bx = 60 + shake;
+  f.rect(bx, 42, 9, 22, [20, 110, 50]); f.rect(bx + 2, 32, 5, 10, [20, 110, 50]); f.rect(bx + 1, 46, 7, 8, [230, 220, 180]);
+  if (p < 0.3) f.rect(bx + 2, 29, 5, 4, GOLD);
+  else {
+    const q = (lt - 0.3 * ctx.dur) / 1000;
+    f.rect(bx + 2, Math.round(29 - q * 90), 4, 3, [200, 160, 100]);
+    for (let i = 0; i < 70; i++) {
+      const s = ((q * 1.4 + rnd(i) * 1.2) % 1.2);
+      const a = -Math.PI / 2 + (rnd(i + 1) - 0.5) * 1.1, v = 35 + rnd(i + 2) * 25;
+      f.set(bx + 4 + Math.cos(a) * v * s, 30 + Math.sin(a) * v * s + 30 * s * s, i % 3 ? [255, 245, 200] : GOLD);
+    }
+  }
+  if (p > 0.3 && p < 0.55) f.center('POP!', 2, WHITE, 3);
+  if (p >= 0.55) f.center(`HELLO ${ctx.year}!`, 4, GOLD, 2);
+}
+
+function loveLetter(f, lt, p) {
+  const slide = ease(seg(p, 0, 0.25));
+  const x = 46, y = Math.round(70 - slide * 38), w = 36, h = 22;
+  f.rect(x, y, w, h, [255, 190, 210]);
+  f.line(x, y + h - 1, x + w / 2, y + h / 2, [230, 120, 160]); f.line(x + w - 1, y + h - 1, x + w / 2, y + h / 2, [230, 120, 160]);
+  const open = seg(p, 0.28, 0.42);
+  const tipY = y + (h / 2) - open * (h);
+  f.line(x, y, x + w / 2, tipY, [230, 120, 160]); f.line(x + w - 1, y, x + w / 2, tipY, [230, 120, 160]);
+  const rise = ease(seg(p, 0.42, 0.7));
+  if (rise > 0) f.sprite(HEART, 57, Math.round(y + 4 - rise * 22), { '#': [255, 40, 90] }, 2);
+  if (p > 0.6) {
+    f.center('LOVE YOU!', 3, WHITE, 2);
+    for (let i = 0; i < 14; i++) if (rnd(i + Math.floor(lt / 150)) > 0.5) f.set(10 + rnd(i) * 108, 20 + rnd(i + 1) * 40, [255, 160, 200]);
+  }
+}
+
+const CLOVER = ['...###...', '..#####..', '..#####..', '###.#.###', '#########', '###.#.###', '....#....', '....#....', '...#.....'];
+function shamrockShine(f, lt, p) {
+  for (let i = 0; i < 40; i++) {
+    const x = rnd(i) * W, y = ((lt / 1000) * (20 + rnd(i + 1) * 20) + rnd(i + 2) * H) % H;
+    f.rect(Math.round(x), Math.round(y), 2, 2, i % 2 ? GOLD : [255, 240, 140]);
+  }
+  const pulse = 0.7 + 0.3 * Math.sin(lt / 200);
+  f.sprite(CLOVER, 51, 14, { '#': GREEN.map(v => v * pulse) }, 3);
+  f.center("TOP O' THE MORNIN'!", 3, WHITE, 1);
+}
+
+function chickHatch(f, lt, p) {
+  const cx = 64 + (p < 0.5 ? Math.sin(lt / 70) * (p * 4) : 0), cy = 44;
+  const egg = (x, y, top) => {
+    for (let yy = -14; yy <= 12; yy++) for (let xx = -10; xx <= 10; xx++) {
+      const k = (xx * xx) / 100 + (yy * yy) / (yy < 0 ? 196 : 144);
+      if (k <= 1 && (top === undefined || (top ? yy < -2 : yy >= -2))) f.set(x + xx, y + yy, [250, 245, 230]);
+    }
+  };
+  if (p < 0.55) {
+    egg(cx, cy);
+    if (p > 0.3) { for (let i = 0; i < 6; i++) f.set(cx - 9 + i * 3, cy - 2 + (i % 2 ? -2 : 1), [120, 100, 80]); }
+  } else {
+    egg(64, cy, false);
+    const lift = ease(seg(p, 0.55, 0.7));
+    egg(64, cy - 2 - lift * 18, true);
+    const up = ease(seg(p, 0.6, 0.75));
+    f.disc(64, cy - 6 - up * 4, 7, [255, 225, 40]);
+    f.set(61, cy - 8 - up * 4, BLACK_ISH); f.set(67, cy - 8 - up * 4, BLACK_ISH);
+    f.rect(63, cy - 6 - up * 4, 3, 2, ORANGE);
+    if (p > 0.72) f.center('PEEP PEEP!', 4, [255, 230, 80], 2);
+  }
+}
+
+function sparklerUSA(f, lt, p) {
+  const tmp = new Frame();
+  const colors = [[255, 50, 50], [255, 255, 255], [70, 120, 255]];
+  tmp.center('USA', 18, i => colors[i % 3], 5);
+  const reveal = 24 + seg(p, 0.05, 0.75) * 84;
+  for (let y = 0; y < H; y++) for (let x = 0; x < Math.min(W, reveal); x++) {
+    const i = (y * W + x) * 3;
+    if (tmp.buf[i] || tmp.buf[i + 1] || tmp.buf[i + 2]) f.set(x, y, [tmp.buf[i], tmp.buf[i + 1], tmp.buf[i + 2]]);
+  }
+  if (p < 0.78) {
+    const sy = 34 + Math.sin(lt / 90) * 12;
+    for (let i = 0; i < 18; i++) {
+      const a = rnd(i + Math.floor(lt / 60)) * Math.PI * 2, d = rnd(i + 3 + Math.floor(lt / 60)) * 7;
+      f.set(reveal + Math.cos(a) * d, sy + Math.sin(a) * d, i % 2 ? [255, 240, 160] : WHITE);
+    }
+    f.line(reveal, sy, reveal + 6, sy + 16, [150, 150, 150]);
+  } else f.center('HAPPY BIRTHDAY AMERICA', 56, [255, 215, 80]);
+}
+
+function jackOLantern(f, lt, p) {
+  const flick = 0.75 + 0.25 * Math.sin(lt / 70) * Math.sin(lt / 23);
+  const glow = [255 * flick, 200 * flick, 40 * flick];
+  for (let y = -18; y <= 18; y++) for (let x = -26; x <= 26; x++) {
+    if ((x * x) / 676 + (y * y) / 324 <= 1) f.set(64 + x, 40 + y, Math.abs(x) % 9 === 0 ? [200, 80, 0] : [255, 120, 0]);
+  }
+  f.rect(62, 19, 4, 4, [60, 140, 40]);
+  const tri = (cx, cy, s, down) => { for (let r = 0; r < s; r++) f.rect(cx - (down ? s - r : r), cy + r, (down ? s - r : r) * 2 + 1, 1, glow); };
+  tri(52, 30, 6, false); tri(76, 30, 6, false); tri(64, 38, 3, false);
+  for (let x = 46; x <= 82; x++) {
+    const tooth = Math.floor((x - 46) / 4) % 2 === 0;
+    f.rect(x, 46 + (tooth ? 0 : 2), 1, tooth ? 5 : 3, glow);
+  }
+  if (p > 0.3) f.center('TRICK OR TREAT!', 2, [180, 100, 255]);
+}
+
+function footballPass(f, lt, p) {
+  const ground = 58;
+  f.rect(0, ground + 1, W, 5, [40, 120, 50]);
+  for (let x = 8; x < W; x += 20) f.rect(x, ground + 1, 1, 5, WHITE);
+  const run = seg(p, 0, 0.7);
+  const rx = 40 + run * 70;
+  kid(f, 18, ground, [200, 40, 40], [200, 40, 40], p < 0.25 ? 1 : 0);
+  kid(f, rx, ground, [200, 40, 40], [200, 40, 40], p > 0.6 ? 1 : 0);
+  const q = seg(p, 0.2, 0.62);
+  if (q > 0 && q < 1) { const x = 21 + q * (rx - 21), y = ground - 10 - Math.sin(q * Math.PI) * 30; f.rect(Math.round(x), Math.round(y), 3, 2, BROWN); }
+  if (p > 0.65) { f.center('TOUCHDOWN!', 8, WHITE, 2); fireworks(f, lt, [[255, 140, 0], [255, 215, 80]], 400, 30); }
+}
+
+function presentSurprise(f, lt, p) {
+  const shake = p < 0.4 ? Math.round(Math.sin(lt / 40) * 2) : 0;
+  const x = 52 + shake, y = 42;
+  f.rect(x, y, 24, 20, [60, 140, 255]); f.rect(x + 10, y, 4, 20, GOLD);
+  const lid = ease(seg(p, 0.4, 0.55));
+  const ly = y - 5 - lid * 40, lx = x - 2 + lid * 30;
+  f.rect(Math.round(lx), Math.round(ly), 28, 5, [80, 160, 255]); f.rect(Math.round(lx) + 12, Math.round(ly), 4, 5, GOLD);
+  if (p > 0.45) {
+    for (let i = 0; i < 80; i++) {
+      const s = (lt - 0.45 * 9000) / 1000, a = -Math.PI / 2 + (rnd(i) - 0.5) * 2.2, v = 25 + rnd(i + 1) * 35;
+      f.set(64 + Math.cos(a) * v * s, 42 + Math.sin(a) * v * s + 18 * s * s, hsv(rnd(i + 2)));
+    }
+    f.center('SURPRISE!', 6, [255, 220, 0], 2);
+  }
+}
+
+function crowdWave(f, lt, p, ctx) {
+  const [c1, c2] = ctx.colors;
+  const wave = ((lt / 1000) * 70) % (W + 40) - 20;
+  for (let row = 0; row < 3; row++) for (let x = 2 + (row % 2) * 2; x < W; x += 5) {
+    const up = Math.abs(x - wave) < 8 ? 5 : 0;
+    const y = 46 + row * 6 - up;
+    f.rect(x, y, 2, 2, SKIN);
+    f.rect(x - 1, y + 2, 4, 3, (x + row) % 2 ? c1 : c2);
+    if (up) { f.set(x - 2, y - 1, SKIN); f.set(x + 3, y - 1, SKIN); }
+  }
+  f.center('THE WAVE!', 6, WHITE, 2);
+  f.center(ctx.cheer, 26, c1.map(v => Math.min(255, v + 60)), 1);
+}
+
+function clapChant(f, lt, p, ctx) {
+  const [c1, c2] = ctx.colors;
+  const beat = Math.floor(lt / 450) % 4;
+  f.rect(0, 0, W, H, (beat % 2 ? c1 : c2).map(v => v * 0.35));
+  if (beat < 2) f.center(ctx.cheer, 22, WHITE, 2);
+  else {
+    f.center('CLAP! CLAP!', 22, [255, 230, 80], 2);
+    for (let i = 0; i < 20; i++) f.set(rnd(i + beat) * W, rnd(i + 9 + beat) * H, WHITE);
+  }
+}
+
 // ---------------- schedule ----------------
 const EVENTS = {
   christmas: [[santa, 10000], [snowman, 13000], [snowballFight, 10000]],
-  newyear: [[ballDrop, 14000], [confettiCannon, 7000]],
-  valentines: [[cupid, 9000], [heartbeat, 6000]],
-  stpatricks: [[rainbow, 9000], [leprechaun, 8000]],
-  easter: [[bunny, 9000], [sunrise, 9000]],
-  july4: [[finale, 8000], [flag, 8000]],
-  halloween: [[ghost, 8000], [witch, 8000]],
-  thanksgiving: [[turkeyRun, 6000], [pie, 6000]],
-  birthday: [[blowCandles, 9000], [balloons, 8000]],
-  gameday: [[bigPlay, 6000]],
+  newyear: [[ballDrop, 14000], [confettiCannon, 7000], [champagne, 8000]],
+  valentines: [[cupid, 9000], [heartbeat, 6000], [loveLetter, 8000]],
+  stpatricks: [[rainbow, 9000], [leprechaun, 8000], [shamrockShine, 7000]],
+  easter: [[bunny, 9000], [sunrise, 9000], [chickHatch, 9000]],
+  july4: [[finale, 8000], [flag, 8000], [sparklerUSA, 9000]],
+  halloween: [[ghost, 8000], [witch, 8000], [jackOLantern, 7000]],
+  thanksgiving: [[turkeyRun, 6000], [pie, 6000], [footballPass, 7000]],
+  birthday: [[blowCandles, 9000], [balloons, 8000], [presentSurprise, 9000]],
+  gameday: [[bigPlay, 6000], [crowdWave, 8000], [clapChant, 6000]],
 };
-export const EVERY = 30000;  // a surprise roughly every 30 seconds
+export const SCENE_COUNT = Object.fromEntries(Object.entries(EVENTS).map(([k, v]) => [k, v.length]));
+export const EVERY = 30000;  // a surprise every 30 seconds, forever
 const START = 12000;         // first one 12 seconds after the screen opens
 
 function hash(s) { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 9973; return h; }
@@ -377,7 +537,10 @@ export function holidaySurprise(f, theme, t, data, ctx) {
   if (!pick) {
     const c = Math.floor((t - START) / EVERY);
     if (c >= 0) {
-      const ev = list[Math.floor(rnd(c + hash(theme)) * list.length)];
+      // Shuffle the scenes each round so every one plays before any repeats.
+      const n = list.length, round = Math.floor(c / n), seed = hash(theme) + round * 13;
+      const order = list.map((_, i) => i).sort((a, b) => rnd(seed + a * 3.1) - rnd(seed + b * 3.1));
+      const ev = list[order[c % n]];
       const off = t - START - c * EVERY;
       if (off < ev[1]) { pick = ev; lt = off; }
     }

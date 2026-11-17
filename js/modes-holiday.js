@@ -1,6 +1,6 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js?v=4';
-import { holidaySurprise } from './holiday-events.js?v=4';
+import { hsv, W, H } from './renderer.js?v=5';
+import { holidaySurprise } from './holiday-events.js?v=5';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
@@ -133,6 +133,14 @@ function drawTree(f, x, y, t, seed) {
   }
 }
 
+export function teamLook(team = 'osu-fb') {
+  return {
+    'osu-fb': ['GO BUCKS!', [187, 0, 0], [200, 200, 200]], 'osu-bb': ['GO BUCKS!', [187, 0, 0], [200, 200, 200]],
+    cavs: ["LET'S GO", [134, 0, 56], [253, 187, 48], 'CAVS!'], browns: ['GO BROWNS!', [255, 60, 0], [130, 80, 50]],
+    guardians: ['GO GUARDS!', [220, 30, 50], [30, 60, 140]],
+  }[team] || ['GAME DAY', [255, 255, 255], [120, 120, 120]];
+}
+
 // ---------- themes ----------
 const T = {
   christmas(f, t, today, st) {
@@ -221,12 +229,7 @@ const T = {
     f.center(line || (name ? `${name}!` : 'TO YOU!'), 39, [255, 255, 255]);
   },
   gameday(f, t, today, st, data) {
-    const team = st.scoreboard?.team || 'osu-fb';
-    const look = {
-      'osu-fb': ['GO BUCKS!', [187, 0, 0], [200, 200, 200]], 'osu-bb': ['GO BUCKS!', [187, 0, 0], [200, 200, 200]],
-      cavs: ["LET'S GO", [134, 0, 56], [253, 187, 48], 'CAVS!'], browns: ['GO BROWNS!', [255, 60, 0], [130, 80, 50]],
-      guardians: ['GO GUARDS!', [220, 30, 50], [30, 60, 140]],
-    }[team] || ['GAME DAY', [255, 255, 255], [120, 120, 120]];
+    const look = teamLook(st.scoreboard?.team);
     const pulse = 0.6 + 0.4 * Math.abs(Math.sin(t / 400));
     for (let x = 0; x < W; x++) {
       const on = Math.floor((x + t / 40) / 8) % 2 === 0;
@@ -250,5 +253,7 @@ export function drawHoliday(f, st, data, t, now) {
   const ny = nextDate('newyear', today, st);
   const team = st.scoreboard?.team || 'osu-fb';
   const sport = team === 'cavs' || team === 'osu-bb' ? 'basketball' : team === 'guardians' ? 'baseball' : 'football';
-  holidaySurprise(f, theme, t, data, { year: ny ? ny.getFullYear() : today.getFullYear() + 1, sport });
+  const look = teamLook(team);
+  const cheer = look[3] ? `${look[0]} ${look[3]}` : look[0];
+  holidaySurprise(f, theme, t, data, { year: ny ? ny.getFullYear() : today.getFullYear() + 1, sport, colors: [look[1], look[2]], cheer });
 }

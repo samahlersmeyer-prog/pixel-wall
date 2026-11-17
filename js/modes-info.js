@@ -1,5 +1,5 @@
 // Info modes: CFP rankings + projected bracket, calendar, countdown.
-import { brighten, W } from './renderer.js?v=4';
+import { brighten, W } from './renderer.js?v=5';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -102,4 +102,33 @@ export function drawCountdown(f, st, now, t) {
   f.center(days === 1 ? 'DAY UNTIL' : 'DAYS UNTIL', 40, DIM);
   const scale = f.textWidth(title, 2) <= W - 4 ? 2 : 1;
   f.center(title.slice(0, 21), scale === 2 ? 49 : 52, color, scale);
+}
+
+// ---------- 3-day weather ----------
+const ICONS = {
+  SUN: ['....y....', '.y.....y.', '...YYY...', 'y.YYYYY.y', '..YYYYY..', '...YYY...', '.y.....y.', '....y....'],
+  PARTLY: ['.y...y...', '..YYY....', '.YYYWWW..', '..YWWWWW.', '.WWWWWWWW', 'WWWWWWWWW', '.WWWWWWW.', '.........'],
+  CLOUD: ['.........', '...WWW...', '..WWWWW..', '.WWWWWWWW', 'WWWWWWWWW', '.WWWWWWW.', '.........', '.........'],
+  RAIN: ['...WWW...', '..WWWWW..', '.WWWWWWWW', 'WWWWWWWWW', '.WWWWWWW.', '.b.b.b.b.', 'b.b.b.b..', '.........'],
+  SNOW: ['...WWW...', '..WWWWW..', '.WWWWWWWW', 'WWWWWWWWW', '.WWWWWWW.', '.s.s.s.s.', 's.s.s.s..', '.........'],
+  STORM: ['...WWW...', '..WWWWW..', '.WWWWWWWW', 'WWWWWWWWW', '.WWWYWWW.', '...YY....', '..YY.....', '.YY......'],
+  FOG: ['.........', 'GGGGGGGG.', '.........', '.GGGGGGGG', '.........', 'GGGGGGGG.', '.........', '.GGGGGGG.'],
+};
+const ICON_P = { y: [255, 200, 40], Y: [255, 220, 60], W: [210, 215, 225], b: [80, 150, 255], s: [235, 245, 255], G: [150, 150, 160] };
+const iconFor = label => ({ CLEAR: 'SUN', 'PARTLY CLOUDY': 'PARTLY', CLOUDY: 'CLOUD', FOG: 'FOG', DRIZZLE: 'RAIN', RAIN: 'RAIN', SNOW: 'SNOW', STORMS: 'STORM' }[label] || 'CLOUD');
+
+export function drawForecast(f, st, data) {
+  const fc = data.forecast;
+  if (!fc) { f.center('WEATHER', 20, YELLOW, 2); f.center('LOADING...', 44, DIM); return; }
+  f.sprite(ICONS[iconFor(fc.now.label)], 4, 3, ICON_P, 2);
+  f.text(`${Math.round(fc.now.temp)}°`, 28, 4, WHITE, 2);
+  f.text(fc.now.label.slice(0, 13), 28, 21, DIM);
+  f.text('FORT', W - 26, 4, YELLOW); f.text('WAYNE', W - 31, 13, YELLOW);
+  f.rect(2, 31, W - 4, 1, [50, 50, 60]);
+  fc.days.slice(0, 3).forEach((d, i) => {
+    const x0 = i * 43, cx = x0 + 21;
+    f.center(d.dow, 34, i === 0 ? [120, 200, 255] : WHITE, 1, x0, x0 + 43);
+    f.sprite(ICONS[iconFor(d.label)], cx - 4, 43, ICON_P);
+    f.center(`${Math.round(d.hi)}/${Math.round(d.lo)}`, 55, [255, 200, 120], 1, x0, x0 + 43);
+  });
 }

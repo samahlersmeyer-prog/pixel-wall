@@ -8,7 +8,12 @@
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
   #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   #frame { width: 96vw; height: 48vw; max-height: 92vh; max-width: 184vh; padding: 1.2vw;
-           background: #0b0b0b; border-radius: 1vw; box-shadow: 0 0 0 0.4vw #161616; box-sizing: border-box; }
+           background: #0b0b0b; border-radius: 1vw; box-shadow: 0 0 0 0.4vw #161616; box-sizing: border-box; position: relative; z-index: 1; }
+  /* Screen styles (chosen on the phone under Display) */
+  #glow { position: fixed; inset: -10vh -10vw; width: 120vw; height: 120vh; display: none; filter: blur(5vw) brightness(.55) saturate(1.4); image-rendering: auto; }
+  body.style-glow #glow { display: block; }
+  body.style-glow #frame, body.style-plain #frame { background: transparent; box-shadow: none; padding: 0; width: 100vw; height: 50vw; max-height: 100vh; max-width: 200vh; }
+  body.style-stretch #frame { background: transparent; box-shadow: none; padding: 0; width: 100vw; height: 100vh; max-width: none; max-height: none; border-radius: 0; }
   canvas { width: 100%; height: 100%; display: block; }
   #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
          color: #aaa; font: 24px system-ui, sans-serif; text-align: center; padding: 2em; cursor: default; }
@@ -16,14 +21,15 @@
 </style>
 </head>
 <body>
+<canvas id="glow" width="128" height="64"></canvas>
 <div id="wrap"><div id="frame"><canvas id="screen"></canvas></div></div>
 <div id="msg"></div>
 <div id="dot" title="connection"></div>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=4';
-import { LedCanvas } from '../js/led-canvas.js?v=4';
-import { startData } from '../js/data.js?v=4';
-import { wallId, watchState, watchConnection } from '../js/wall.js?v=4';
+import { render, Frame } from '../js/renderer.js?v=5';
+import { LedCanvas } from '../js/led-canvas.js?v=5';
+import { startData } from '../js/data.js?v=5';
+import { wallId, watchState, watchConnection } from '../js/wall.js?v=5';
 
 const id = wallId();
 const msg = document.getElementById('msg');
@@ -46,14 +52,43 @@ watchState(id, s => {
   const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
   state = s;
   led.brightness = (s.brightness ?? 80) / 100;
+  applyDisplay(s.display || {});
   if (changed) live.refresh();
 });
+
+let lastStyle = '';
+function applyDisplay(d) {
+  const style = d.frame || 'bezel';
+  if (style !== lastStyle) {
+    document.body.className = 'style-' + style;
+    lastStyle = style;
+    setTimeout(() => led.resize(), 50);
+  }
+  led.setStyle({ dots: d.dots || 'round', seam: d.seam !== false });
+}
+
+// Night mode: between start and end, show a dim clock, dim everything, or turn the screen off.
+function nightMode(now) {
+  const n = state.display?.night;
+  if (!n?.on || !n.start || !n.end) return null;
+  const mins = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+  const cur = now.getHours() * 60 + now.getMinutes(), a = mins(n.start), b = mins(n.end);
+  const inside = a <= b ? (cur >= a && cur < b) : (cur >= a || cur < b);
+  return inside ? n : null;
+}
 watchConnection(ok => document.getElementById('dot').style.background = ok ? '#1d6b2b' : '#7a1d1d');
 
 const frame = new Frame();
+const glow = document.getElementById('glow').getContext('2d');
 function loop() {
-  render(state, live.data, performance.now() - t0, new Date(), frame);
+  const now = new Date(), t = performance.now() - t0;
+  const night = nightMode(now);
+  const normal = (state.brightness ?? 80) / 100;
+  if (night && night.mode === 'off') frame.clear();
+  else render(night && night.mode !== 'dim' ? { ...state, mode: 'clock' } : state, live.data, t, now, frame);
+  led.brightness = night ? (night.level ?? 15) / 100 : normal;
   led.draw(frame);
+  if (lastStyle === 'glow') glow.drawImage(led.small, 0, 0);
   setTimeout(() => requestAnimationFrame(loop), 1000 / 30);
 }
 loop();

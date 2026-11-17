@@ -1,11 +1,11 @@
 // Shared renderer: turns the wall's state + live data into a 128x64 RGB frame.
 // The TV simulator, the phone preview and (later) the LED board all use this,
 // so what you see on the TV is exactly what the panels will show.
-import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=4';
-import { drawMap } from './modes-map.js?v=4';
-import { drawCfp, drawCalendar, drawCountdown } from './modes-info.js?v=4';
-import { drawHoliday } from './modes-holiday.js?v=4';
-import { drawFun } from './modes-fun.js?v=4';
+import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=5';
+import { drawMap } from './modes-map.js?v=5';
+import { drawCfp, drawCalendar, drawCountdown, drawForecast } from './modes-info.js?v=5';
+import { drawHoliday } from './modes-holiday.js?v=5';
+import { drawFun } from './modes-fun.js?v=5';
 
 export const W = 128;
 export const H = 64;
@@ -202,9 +202,20 @@ function drawScoreboard(f, st, data, t) {
   if (live && Math.floor(t / 600) % 2 === 0) f.rect(W - 4, H - 4, 2, 2, [255, 40, 40]);
 }
 
+export const ROTATE_DEFAULT = ['clock', 'weather', 'scoreboard', 'holiday', 'calendar'];
+
+// Which mode is on screen right now (rotate cycles through a list).
+export function activeMode(state = {}, t = 0) {
+  if (state.mode !== 'rotate') return state.mode || 'message';
+  const list = (state.rotate?.modes || []).filter(m => m !== 'rotate');
+  const modes = list.length ? list : ROTATE_DEFAULT;
+  const secs = state.rotate?.seconds || 20;
+  return modes[Math.floor(t / (secs * 1000)) % modes.length];
+}
+
 export function render(state = {}, data = {}, t = 0, now = new Date(), frame = new Frame()) {
   frame.clear();
-  const mode = state.mode || 'message';
+  const mode = activeMode(state, t);
   if (mode === 'clock') drawClock(frame, state, data, now);
   else if (mode === 'scoreboard') drawScoreboard(frame, state, data, t);
   else if (mode === 'christmas') drawHoliday(frame, { ...state, holiday: { theme: 'christmas' } }, data, t, now);
@@ -214,6 +225,7 @@ export function render(state = {}, data = {}, t = 0, now = new Date(), frame = n
   else if (mode === 'calendar') drawCalendar(frame, state, now);
   else if (mode === 'countdown') drawCountdown(frame, state, now, t);
   else if (mode === 'fun') drawFun(frame, state, t);
+  else if (mode === 'weather') drawForecast(frame, state, data);
   else drawMessage(frame, state, t);
   return frame;
 }

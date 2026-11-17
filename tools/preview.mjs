@@ -62,6 +62,9 @@ const cases = {
   map_quiz: [{ mode: 'map', map: { view: 'quiz' } }, {}, 2000],
   map_quiz_reveal: [{ mode: 'map', map: { view: 'quiz' } }, {}, 7500],
   map_visited: [{ mode: 'map', map: { view: 'visited' }, visited: ['IN', 'OH', 'MI', 'IL', 'KY', 'FL', 'TN', 'GA', 'NY', 'PA', 'WI', 'CO'] }, {}],
+  weather: [{ mode: 'weather' }, { forecast: { now: { temp: 36.4, label: 'PARTLY CLOUDY' }, days: [
+    { dow: 'WED', hi: 41, lo: 29, label: 'SNOW' }, { dow: 'THU', hi: 45, lo: 33, label: 'CLOUDY' }, { dow: 'FRI', hi: 52, lo: 38, label: 'CLEAR' }] } }],
+  rotate_0: [{ mode: 'rotate', rotate: { modes: ['clock', 'weather'], seconds: 10 } }, { weather: { temp: 34.2, label: 'CLOUDY' } }, 3000],
   fun_life: [{ mode: 'fun', fun: { view: 'life' } }, {}, 3000],
   fun_matrix: [{ mode: 'fun', fun: { view: 'matrix' } }, {}, 3000],
   fun_warp: [{ mode: 'fun', fun: { view: 'warp' } }, {}, 3000],
