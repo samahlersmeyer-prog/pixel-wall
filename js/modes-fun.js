@@ -1,6 +1,6 @@
-// Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma.
-import { hsv, W, H } from './renderer.js?v=11';
-import { fireworks } from './modes-holiday.js?v=11';
+// Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
+import { hsv, W, H } from './renderer.js?v=12';
+import { fireworks } from './modes-holiday.js?v=12';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
@@ -94,7 +94,66 @@ function plasma(f, t) {
   }
 }
 
-export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp']];
+// Corner Hit: the old DVD screensaver. A logo bounces around, changing color on every wall.
+// The sizes are picked so it lines up perfectly with a corner about every 4.5 minutes (first one about a minute in),
+// and when it does: the screen flashes, CORNER!, fireworks out of that corner and confetti.
+const STEP = 50;   // 20 px per second
+const tri = (k, R) => { const m = ((k % (2 * R)) + 2 * R) % (2 * R); return m <= R ? m : 2 * R - m; };
+function bounce(f, t) {
+  const BW = W - 101, BH = H - 53, RX = W - BW, RY = H - BH;   // 101 and 53 share no factors, so corners come around regularly
+  const s = sim(f, 'bounce', () => {
+    const first = 1200;   // first corner after ~60 s
+    return { px: ((-first % (2 * RX)) + 2 * RX) % (2 * RX), py: ((-first % (2 * RY)) + 2 * RY) % (2 * RY), acc: 0, last: t, hue: Math.random(), hits: 0, party: null, parts: [], near: 0 };
+  });
+  s.acc += Math.min(500, t - s.last); s.last = t;
+  // party time: hold in the corner for 6 seconds
+  if (s.party && t - s.party.t0 > 6000) s.party = null;
+  while (s.acc >= STEP) {
+    s.acc -= STEP;
+    if (s.party) continue;
+    s.px++; s.py++;
+    const wx = s.px % RX === 0, wy = s.py % RY === 0;
+    if (wx || wy) s.hue = (s.hue + 0.17 + Math.random() * 0.2) % 1;
+    if (wx && wy) {
+      s.hits++;
+      const cx = tri(s.px, RX) ? W - 1 : 0, cy = tri(s.py, RY) ? H - 1 : 0;
+      s.party = { t0: t, cx, cy };
+      for (let k = 0; k < 140; k++) {
+        const a = Math.atan2(H / 2 - cy, W / 2 - cx) + (Math.random() - 0.5) * 1.6, v = 20 + Math.random() * 70;
+        s.parts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, h: Math.random(), l: 1.5 + Math.random() * 1.5, kind: 'spark' });
+      }
+      for (let k = 0; k < 70; k++) s.parts.push({ x: Math.random() * W, y: -Math.random() * 30, vx: (Math.random() - 0.5) * 10, vy: 12 + Math.random() * 14, h: Math.random(), l: 6, kind: 'confetti' });
+    }
+  }
+  const x = tri(s.px, RX), y = tri(s.py, RY);
+  // how close are we to a corner? (for a little suspense glow)
+  const dx = Math.min(x, RX - x), dy = Math.min(y, RY - y);
+  const sinceParty = s.party ? (t - s.party.t0) / 1000 : 99;
+  if (sinceParty < 0.25) f.rect(0, 0, W, H, [255, 255, 255].map(v => v * (1 - sinceParty / 0.25)));
+  // particles
+  const dt = 1 / 30;
+  for (const p of s.parts) {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt;
+    if (p.kind === 'spark') { p.vy += 25 * dt; p.vx *= 0.985; f.add(p.x, p.y, hsv(p.h, 0.6, Math.min(1, p.l))); }
+    else { p.x += Math.sin(t / 300 + p.h * 10) * 0.3; f.set(p.x, p.y, hsv(p.h, 0.8, 1)); }
+  }
+  s.parts = s.parts.filter(p => p.l > 0 && p.y < H + 2);
+  // the logo
+  const col = s.party ? hsv((t / 400) % 1, 0.8, 1) : hsv(s.hue, 0.75, 1);
+  f.rect(x, y, BW, BH, col.map(v => v * 0.18));
+  f.rect(x, y, BW, 1, col); f.rect(x, y + BH - 1, BW, 1, col); f.rect(x, y, 1, BH, col); f.rect(x + BW - 1, y, 1, BH, col);
+  f.text('DAWG', x + Math.round((BW - f.textWidth('DAWG')) / 2), y + 2, col);
+  if (!s.party && dx < 6 && dy < 6) for (let k = 0; k < 3; k++) f.add(x + Math.random() * BW, y + Math.random() * BH, [40, 40, 40]);
+  if (s.party) {
+    const k = sinceParty;
+    const big = 'CORNER!', sc = 2, tw = f.textWidth(big, sc), jx = Math.round(Math.sin(t / 60) * (k < 1.5 ? 2 : 0));
+    f.text(big, Math.round((W - tw) / 2) + jx, 16, i => hsv(((t / 500) + i / 7) % 1, 0.9, 1), sc);
+    const sub = s.hits === 1 ? 'FIRST ONE!' : `HIT #${s.hits}`;
+    if (k > 0.6) f.text(sub, Math.round((W - f.textWidth(sub)) / 2), 36, [255, 255, 255]);
+  } else if (s.hits) f.text(String(s.hits), W - f.textWidth(String(s.hits)) - 1, H - 8, [60, 60, 70]);
+}
+
+export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp'], ['bounce', 'Corner Hit']];
 
 export function drawFun(f, st, t) {
   const v = st.fun?.view || 'life';
@@ -103,5 +162,6 @@ export function drawFun(f, st, t) {
   else if (v === 'matrix') matrix(f, t);
   else if (v === 'warp') warp(f, t);
   else if (v === 'plasma') plasma(f, t);
+  else if (v === 'bounce') bounce(f, t);
   else life(f, t);
 }
