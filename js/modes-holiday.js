@@ -1,6 +1,7 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js?v=5';
-import { holidaySurprise } from './holiday-events.js?v=5';
+import { hsv, W, H } from './renderer.js?v=6';
+import { holidaySurprise } from './holiday-events.js?v=6';
+import { drawFireplace } from './modes-fireplace.js?v=6';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
@@ -29,7 +30,7 @@ const HOLIDAYS = [
 ];
 
 export const THEMES = [
-  ['auto', 'Auto (by date)'], ['christmas', 'Christmas'], ['newyear', "New Year's"], ['valentines', "Valentine's Day"],
+  ['auto', 'Auto (by date)'], ['fireplace', 'Fireplace (cozy, all season)'], ['christmas', 'Christmas'], ['newyear', "New Year's"], ['valentines', "Valentine's Day"],
   ['stpatricks', "St. Patrick's Day"], ['easter', 'Easter'], ['july4', '4th of July'], ['halloween', 'Halloween'],
   ['thanksgiving', 'Thanksgiving'], ['birthday', 'Birthday'], ['gameday', 'Game Day'],
 ];
@@ -247,6 +248,7 @@ export function drawHoliday(f, st, data, t, now) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let theme = st.holiday?.theme || 'auto';
   if (theme === 'auto') theme = autoTheme(today, st);
+  if (theme === 'fireplace') { drawFireplace(f, st, data, t, now); return; }
   if (!T[theme]) theme = 'christmas';
   T[theme](f, t, today, st, data);
   if (st.holiday?.surprises === false) return;

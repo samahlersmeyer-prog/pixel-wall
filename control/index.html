@@ -51,7 +51,7 @@
 </style>
 </head>
 <body>
-<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v5</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v6</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
 
 <section id="setup" class="card hidden">
   <h2>Set up your wall</h2>
@@ -134,6 +134,7 @@
   <section class="card" data-panel="holiday">
     <h2>Holidays</h2>
     <button class="primary" id="surprise" style="margin-bottom:12px">Surprise! Play a scene now</button>
+    <div class="grid2" style="margin-bottom:12px"><button id="fpClock">Fireplace clock: off</button><span></span></div>
     <div class="list" id="themes"></div>
     <h3>Birthday</h3>
     <div class="row"><input type="text" id="bdName" placeholder="Name" maxlength="12"><input type="date" id="bdDate"></div>
@@ -195,13 +196,13 @@
 </main>
 
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=5';
-import { LedCanvas } from '../js/led-canvas.js?v=5';
-import { startData, TEAMS } from '../js/data.js?v=5';
-import { THEMES } from '../js/modes-holiday.js?v=5';
-import { FUN } from '../js/modes-fun.js?v=5';
-import { STATES } from '../js/usmap-data.js?v=5';
-import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=5';
+import { render, Frame } from '../js/renderer.js?v=6';
+import { LedCanvas } from '../js/led-canvas.js?v=6';
+import { startData, TEAMS } from '../js/data.js?v=6';
+import { THEMES } from '../js/modes-holiday.js?v=6';
+import { FUN } from '../js/modes-fun.js?v=6';
+import { STATES } from '../js/usmap-data.js?v=6';
+import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=6';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -299,7 +300,9 @@ function start() {
   $$('[data-mapview]').forEach(b => b.onclick = () => set({ mode: 'map', map: { view: b.dataset.mapview } }));
   STATES.filter(s => s.abbr !== 'DC').sort((a, b) => a.abbr.localeCompare(b.abbr)).forEach(s => {
     $('#states').appendChild(btn(s.abbr, { st: s.abbr }, () => {
-      const v = new Set(state.visited || []);
+      $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
+    $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
+    const v = new Set(state.visited || []);
       v.has(s.abbr) ? v.delete(s.abbr) : v.add(s.abbr);
       set({ mode: 'map', map: { view: 'visited' }, visited: [...v] });
     }));
@@ -307,6 +310,7 @@ function start() {
 
   // ----- holidays -----
   THEMES.forEach(([key, label]) => $('#themes').appendChild(btn(label, { theme: key }, () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: key } }))));
+  $('#fpClock').onclick = () => set({ fireplace: { clock: !state.fireplace?.clock } });
   $('#bdSave').onclick = () => {
     if (!$('#bdDate').value) return;
     set({ birthday: { name: $('#bdName').value.trim(), date: $('#bdDate').value }, mode: 'holiday', holiday: { theme: 'birthday' } });
@@ -315,7 +319,7 @@ function start() {
   // ----- fun -----
   // ----- rotate -----
   const ROT = [['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],
-    ['countdown', 'Countdown'], ['map', 'Map'], ['holiday', 'Holiday'], ['fun', 'Fun'], ['message', 'Message']];
+    ['countdown', 'Countdown'], ['map', 'Map'], ['holiday', 'Holiday'], ['fireplace', 'Fireplace'], ['fun', 'Fun'], ['message', 'Message']];
   let rotDraft = null, rotSecs = 20;
   ROT.forEach(([key, label]) => $('#rotList').appendChild(btn(label, { rot: key }, () => {
     const cur = new Set(rotDraft || state.rotate?.modes || ['clock', 'weather', 'scoreboard', 'holiday', 'calendar']);
@@ -372,6 +376,8 @@ function start() {
     $$('[data-mapview]').forEach(b => b.classList.toggle('on', state.mode === 'map' && b.dataset.mapview === (state.map?.view || 'weather')));
     $$('[data-theme]').forEach(b => b.classList.toggle('on', state.mode === 'holiday' && b.dataset.theme === (state.holiday?.theme || 'auto')));
     $$('[data-fun]').forEach(b => b.classList.toggle('on', state.mode === 'fun' && b.dataset.fun === (state.fun?.view || 'life')));
+    $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
+    $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
     const v = new Set(state.visited || []);
     $$('[data-st]').forEach(b => b.classList.toggle('on', v.has(b.dataset.st)));
     $('#visitedBox').classList.toggle('hidden', !(state.mode === 'map' && state.map?.view === 'visited'));
