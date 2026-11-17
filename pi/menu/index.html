@@ -81,6 +81,8 @@ addEventListener('keydown', e => {
   else if (e.key === 'Enter' || e.key === ' ') open();
 });
 addEventListener('mousemove', () => { lastInput = Date.now(); });
+// Coming back with the browser's Back button restores the page mid-"Opening...": reset it.
+addEventListener('pageshow', () => { busy = false; document.getElementById('toast').style.display = 'none'; lastInput = Date.now(); });
 
 // Controllers: D-pad / stick to move, any face button or START to open.
 const prev = {};
