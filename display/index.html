@@ -17,6 +17,9 @@
   canvas { width: 100%; height: 100%; display: block; }
   #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
          color: #aaa; font: 24px system-ui, sans-serif; text-align: center; padding: 2em; cursor: default; }
+  #toast { position: fixed; left: 50%; bottom: 5vh; transform: translateX(-50%); z-index: 5; display: none;
+           background: rgba(0,0,0,.78); color: #ffd36b; font: 600 2.4vw/1.3 system-ui, sans-serif; padding: .6em 1.2em;
+           border-radius: .6em; border: 1px solid #333; white-space: nowrap; }
   #dot { position: fixed; right: 12px; bottom: 10px; width: 8px; height: 8px; border-radius: 50%; background: #333; }
 </style>
 </head>
@@ -24,12 +27,14 @@
 <canvas id="glow" width="128" height="64"></canvas>
 <div id="wrap"><div id="frame"><canvas id="screen"></canvas></div></div>
 <div id="msg"></div>
+<div id="toast"></div>
 <div id="dot" title="connection"></div>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=9';
-import { LedCanvas } from '../js/led-canvas.js?v=9';
-import { startData } from '../js/data.js?v=9';
-import { wallId, watchState, watchConnection } from '../js/wall.js?v=9';
+import { render, Frame } from '../js/renderer.js?v=10';
+import { LedCanvas } from '../js/led-canvas.js?v=10';
+import { startData } from '../js/data.js?v=10';
+import { wallId, watchState, setState, watchConnection } from '../js/wall.js?v=10';
+import { startRemote } from '../js/remote.js?v=10';
 
 const id = wallId();
 const msg = document.getElementById('msg');
@@ -92,6 +97,15 @@ function loop() {
   setTimeout(() => requestAnimationFrame(loop), 1000 / 30);
 }
 loop();
+
+// Controller / keyboard on the TV computer (the Pi) can change screens too.
+const toastEl = document.getElementById('toast');
+let toastT = 0;
+startRemote({
+  getState: () => state,
+  setState: patch => setState(id, patch),
+  toast: (text, ms = 1600) => { toastEl.textContent = text; toastEl.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => toastEl.style.display = 'none', ms); },
+});
 
 // Keep the TV/laptop awake; double-click for fullscreen.
 async function wake() { try { await navigator.wakeLock?.request('screen'); } catch {} }
