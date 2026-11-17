@@ -1,0 +1,14 @@
+{
+  "start": "wall",
+  "idle_minutes": 5,
+  "retroarch": { "command": "__RA_CMD__", "flatpak": __FLATPAK__ },
+  "tiles": [
+    { "id": "wall", "name": "Pixel Wall", "icon": "🧱", "url": "https://samahlersmeyer-prog.github.io/pixel-wall/display/#w=__WALL_KEY__" },
+    { "id": "bigdawg", "name": "Big Dawg Daily", "icon": "🐶", "url": "https://samahlersmeyer-prog.github.io/bigdawg/" },
+    { "id": "games", "name": "Retro Games", "icon": "🎮", "type": "games" },
+    { "id": "junglejam", "name": "Jungle Jam", "icon": "🦁", "url": "https://samahlersmeyer-prog.github.io/jungle-jam-player/" },
+    { "id": "glam", "name": "Glam Studio", "icon": "💅", "url": "https://samahlersmeyer-prog.github.io/glam-studio/" },
+    { "id": "frontoffice", "name": "Front Office", "icon": "⚾", "url": "https://samahlersmeyer-prog.github.io/front-office/" },
+    { "id": "calendar", "name": "Family Calendar", "icon": "📅", "url": "https://samahlersmeyer-prog.github.io/family-calendar/" }
+  ]
+}
