@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Wall — TV</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #frame { width: 96vw; height: 48vw; max-height: 92vh; max-width: 184vh; padding: 1.2vw;
+           background: #0b0b0b; border-radius: 1vw; box-shadow: 0 0 0 0.4vw #161616; box-sizing: border-box; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+         color: #aaa; font: 24px system-ui, sans-serif; text-align: center; padding: 2em; cursor: default; }
+  #dot { position: fixed; right: 12px; bottom: 10px; width: 8px; height: 8px; border-radius: 50%; background: #333; }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="frame"><canvas id="screen"></canvas></div></div>
+<div id="msg"></div>
+<div id="dot" title="connection"></div>
+<script type="module">
+import { render, Frame } from '../js/renderer.js';
+import { LedCanvas } from '../js/led-canvas.js';
+import { startData } from '../js/data.js';
+import { wallId, watchState, watchConnection } from '../js/wall.js';
+
+const id = wallId();
+const msg = document.getElementById('msg');
+if (!id) {
+  msg.style.display = 'flex';
+  msg.textContent = 'Open this page with your wall link (it ends in #w=...). Make one from the phone controller.';
+  throw new Error('no wall id');
+}
+
+const led = new LedCanvas(document.getElementById('screen'));
+addEventListener('resize', () => led.resize());
+
+let state = { mode: 'message', message: { text: 'CONNECTING...', color: '#666666', anim: 'static' } };
+const live = startData(() => state, () => {});
+watchState(id, s => {
+  const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
+  state = s;
+  led.brightness = (s.brightness ?? 80) / 100;
+  if (changed) live.refresh();
+});
+watchConnection(ok => document.getElementById('dot').style.background = ok ? '#1d6b2b' : '#7a1d1d');
+
+const frame = new Frame();
+const t0 = performance.now();
+function loop() {
+  render(state, live.data, performance.now() - t0, new Date(), frame);
+  led.draw(frame);
+  setTimeout(() => requestAnimationFrame(loop), 1000 / 30);
+}
+loop();
+
+// Keep the TV/laptop awake; double-click for fullscreen.
+async function wake() { try { await navigator.wakeLock?.request('screen'); } catch {} }
+wake(); document.addEventListener('visibilitychange', wake);
+document.addEventListener('dblclick', () => document.documentElement.requestFullscreen?.());
+</script>
+</body>
+</html>

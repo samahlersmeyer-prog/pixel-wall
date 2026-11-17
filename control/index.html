@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pixel Wall">
+<meta name="theme-color" content="#0d0d10">
+<title>Pixel Wall</title>
+<style>
+  :root { --bg: #0d0d10; --card: #17171c; --line: #26262e; --text: #f2f2f5; --dim: #8a8a96; --accent: #3fa9f5; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px -apple-system, system-ui, sans-serif;
+         padding: env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 24px); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 2px 10px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+  #dot { width: 9px; height: 9px; border-radius: 50%; background: #444; display: inline-block; margin-left: 8px; }
+  .preview { background: #000; border-radius: 12px; padding: 8px; border: 1px solid var(--line); }
+  .preview canvas { width: 100%; aspect-ratio: 2 / 1; display: block; }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0; }
+  .tabs button { padding: 12px 4px; font-size: 14px; }
+  button { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+           font: inherit; padding: 12px 14px; cursor: pointer; }
+  button.on { border-color: var(--accent); background: #13283a; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #001523; font-weight: 600; width: 100%; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; color: var(--dim); margin: 0 0 10px; letter-spacing: .6px; }
+  textarea { width: 100%; background: #0f0f13; color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+             font: 18px ui-monospace, Menlo, monospace; padding: 10px; text-transform: uppercase; resize: none; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; padding: 0; }
+  .sw.on { border-color: #fff; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .teams { display: grid; gap: 8px; }
+  .teams button { text-align: left; }
+  input[type=range] { width: 100%; }
+  .hidden { display: none; }
+  .links input { width: 100%; background: #0f0f13; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 13px; margin: 4px 0 10px; }
+  .small { color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+<header><h1>Pixel Wall<span id="dot"></span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+
+<section id="setup" class="card hidden">
+  <h2>Set up your wall</h2>
+  <p class="small">This makes a private wall. Open the TV link on the TV, and save this page to your home screen.</p>
+  <button class="primary" id="create">Create my wall</button>
+</section>
+
+<main id="app" class="hidden">
+  <div class="preview"><canvas id="preview"></canvas></div>
+
+  <div class="tabs">
+    <button data-mode="message">Message</button>
+    <button data-mode="clock">Clock</button>
+    <button data-mode="scoreboard">Scores</button>
+    <button data-mode="christmas">Christmas</button>
+  </div>
+
+  <section class="card" data-panel="message">
+    <h2>Message</h2>
+    <textarea id="text" rows="2" maxlength="80" placeholder="TYPE A MESSAGE"></textarea>
+    <div class="swatches" id="swatches"></div>
+    <div class="seg" id="anim">
+      <button data-anim="static">Still</button>
+      <button data-anim="scroll">Scroll</button>
+      <button data-anim="rainbow">Rainbow</button>
+    </div>
+    <button class="primary" id="send">Send to wall</button>
+  </section>
+
+  <section class="card" data-panel="scoreboard">
+    <h2>Team</h2>
+    <div class="teams" id="teams"></div>
+  </section>
+
+  <section class="card" data-panel="clock"><h2>Clock</h2><p class="small">Time, date and Fort Wayne weather.</p></section>
+  <section class="card" data-panel="christmas"><h2>Christmas</h2><p class="small">Snow, trees and a countdown to Christmas Day.</p></section>
+
+  <section class="card">
+    <h2>Brightness</h2>
+    <input type="range" id="bright" min="10" max="100" step="5">
+  </section>
+
+  <section class="card links hidden" id="links">
+    <h2>Links</h2>
+    <div class="small">TV display</div><input id="tvLink" readonly>
+    <div class="small">Phone controller</div><input id="phoneLink" readonly>
+  </section>
+</main>
+
+<script type="module">
+import { render, Frame } from '../js/renderer.js';
+import { LedCanvas } from '../js/led-canvas.js';
+import { startData, TEAMS } from '../js/data.js';
+import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js';
+
+const $ = s => document.querySelector(s);
+const COLORS = ['#ffffff', '#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#30d5c8', '#3fa9f5', '#5e5ce6', '#bf5af2', '#ff2d92', '#860038', '#bb0000'];
+let id = wallId();
+
+if (!id) {
+  $('#setup').classList.remove('hidden');
+  $('#create').onclick = async () => {
+    id = newWallId();
+    location.hash = 'w=' + id;
+    localStorage.setItem('pixelWallId', id);
+    await setState(id, { mode: 'message', message: { text: 'HELLO MAX', color: '#3fa9f5', anim: 'static' }, scoreboard: { team: 'cavs' }, brightness: 80 });
+    location.reload();
+  };
+} else {
+  start();
+}
+
+function start() {
+  $('#app').classList.remove('hidden');
+  if (!location.hash.includes('w=')) history.replaceState(null, '', '#w=' + id);
+  const base = location.href.split('/control/')[0];
+  $('#tvLink').value = `${base}/display/#w=${id}`;
+  $('#phoneLink').value = `${base}/control/#w=${id}`;
+  $('#linksBtn').onclick = () => $('#links').classList.toggle('hidden');
+  document.querySelectorAll('.links input').forEach(i => i.onclick = () => i.select());
+
+  let state = {};
+  let draft = { text: '', color: '#ffffff', anim: 'static' };
+  const led = new LedCanvas($('#preview'));
+  addEventListener('resize', () => led.resize());
+  const live = startData(() => state, () => {});
+
+  // Color swatches
+  COLORS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.style.background = c; b.dataset.c = c;
+    b.onclick = () => { draft.color = c; paint(); };
+    $('#swatches').appendChild(b);
+  });
+  // Team buttons
+  TEAMS.forEach(t => {
+    const b = document.createElement('button');
+    b.textContent = t.label; b.dataset.team = t.key;
+    b.onclick = () => setState(id, { mode: 'scoreboard', scoreboard: { team: t.key, label: t.abbr } });
+    $('#teams').appendChild(b);
+  });
+
+  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+    if (b.dataset.mode === 'message') { panel('message'); return; }
+    setState(id, { mode: b.dataset.mode });
+  });
+  document.querySelectorAll('[data-anim]').forEach(b => b.onclick = () => { draft.anim = b.dataset.anim; paint(); });
+  $('#text').oninput = e => { draft.text = e.target.value.toUpperCase(); };
+  $('#send').onclick = async () => {
+    const text = draft.text.trim() || 'HELLO MAX';
+    await setState(id, { mode: 'message', message: { text, color: draft.color, anim: draft.anim } });
+    $('#send').textContent = 'Sent!';
+    setTimeout(() => $('#send').textContent = 'Send to wall', 1200);
+  };
+  $('#bright').oninput = e => setState(id, { brightness: Number(e.target.value) });
+
+  let shownPanel = null;
+  function panel(name) {
+    shownPanel = name;
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === name));
+  }
+  function paint() {
+    document.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === draft.color));
+    document.querySelectorAll('[data-anim]').forEach(b => b.classList.toggle('on', b.dataset.anim === draft.anim));
+    document.querySelectorAll('[data-team]').forEach(b => b.classList.toggle('on', b.dataset.team === state.scoreboard?.team));
+  }
+
+  let first = true;
+  watchState(id, s => {
+    const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
+    state = s;
+    if (first && s.message) { draft = { ...draft, ...s.message }; $('#text').value = draft.text; first = false; }
+    $('#bright').value = s.brightness ?? 80;
+    led.brightness = Math.max(0.35, (s.brightness ?? 80) / 100);
+    if (changed || !shownPanel) panel(s.mode || 'message');
+    paint();
+    if (changed) live.refresh();
+  });
+  watchConnection(ok => $('#dot').style.background = ok ? '#30d158' : '#ff453a');
+
+  const frame = new Frame();
+  const t0 = performance.now();
+  (function loop() {
+    render(state, live.data, performance.now() - t0, new Date(), frame);
+    led.draw(frame);
+    setTimeout(() => requestAnimationFrame(loop), 1000 / 20);
+  })();
+}
+</script>
+</body>
+</html>
