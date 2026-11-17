@@ -5,7 +5,7 @@ Shows one thing at a time on the screen: the home menu, the Pixel Wall, one of
 the family web apps, or RetroArch for retro games.
 
 - The home menu is served at http://localhost:8765/ and opened in Chromium kiosk mode.
-- Hold SELECT + START on any controller (or press F12 on a keyboard) to come back
+- Hold SELECT + START on any controller (or press Esc or Home on a keyboard) to come back
   to the menu from anywhere, including the middle of a game.
 - On boot it opens the "start" tile from config.json (the Pixel Wall).
 """
@@ -182,7 +182,7 @@ def open_tile(tile_id):
 # ---------------- controller hotkey ----------------
 # SELECT+START differs by controller brand, so a few common button pairs count.
 HOTKEY_PAIRS = [{314, 315}, {296, 297}, {298, 299}]  # BTN_SELECT/START, generic pads
-HOTKEY_SINGLE = {316, 88}                            # Xbox/guide button, keyboard F12
+HOTKEY_SINGLE = {316, 1, 102}                        # Xbox/guide button, keyboard Esc, Home
 
 
 def hotkey_watcher():
@@ -221,7 +221,7 @@ def hotkey_watcher():
                     caps = evdev.InputDevice(path).capabilities().get(evdev.ecodes.EV_KEY, [])
                 except Exception:
                     continue
-                if any(c in caps for c in (314, 315, 296, 297, 316, 288, 304, 88)):
+                if any(c in caps for c in (314, 315, 296, 297, 316, 288, 304, 1, 102)):
                     watching.add(path)
                     threading.Thread(target=watch, args=(path,), daemon=True).start()
         time.sleep(3)

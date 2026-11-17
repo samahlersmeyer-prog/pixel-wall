@@ -17,7 +17,7 @@ One box behind the monitor that shows the Pixel Wall, a home menu of the family'
 ## Using it
 
 - **Drive the wall with the controller** while it's on screen: D-pad ◀ ▶ changes screens, ▲ ▼ changes the option (holiday, team, fun scene, map), **A** plays a holiday surprise, **LB/RB** dim/brighten, **Y** shows the button guide. Arrow keys / Enter / H do the same on a keyboard. The phone controller stays in sync.
-- **Hold SELECT + START** on a controller (or press **F12** on a keyboard) to open the home menu from anywhere, even mid-game.
+- **Hold SELECT + START** on a controller (or press **Esc** or **Home** on a keyboard) to open the home menu from anywhere, even mid-game.
 - D-pad to pick a tile, **A** to open it. After 5 minutes of no input, the menu goes back to the wall.
 - **Retro Games** opens RetroArch with a list per system (SNES, NES, Game Boy, GBA, Genesis, N64).
 
