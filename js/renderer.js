@@ -2,6 +2,10 @@
 // The TV simulator, the phone preview and (later) the LED board all use this,
 // so what you see on the TV is exactly what the panels will show.
 import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js';
+import { drawMap } from './modes-map.js';
+import { drawCfp, drawCalendar, drawCountdown } from './modes-info.js';
+import { drawHoliday } from './modes-holiday.js';
+import { drawFun } from './modes-fun.js';
 
 export const W = 128;
 export const H = 64;
@@ -62,6 +66,11 @@ export class Frame {
     }
     return cx;
   }
+  // rows: array of strings; palette maps characters to colors; '.' is transparent
+  sprite(rows, x, y, palette, scale = 1) {
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = palette[r[i]]; if (c) this.rect(x + i * scale, y + j * scale, scale, scale, c); } });
+  }
+  dim(k) { for (let i = 0; i < this.buf.length; i++) this.buf[i] *= k; }
   center(str, y, color, scale = 1, x0 = 0, x1 = W) {
     const w = this.textWidth(str, scale);
     this.text(str, Math.round(x0 + (x1 - x0 - w) / 2), y, color, scale);
@@ -184,53 +193,18 @@ function drawScoreboard(f, st, data, t) {
   if (live && Math.floor(t / 600) % 2 === 0) f.rect(W - 4, H - 4, 2, 2, [255, 40, 40]);
 }
 
-// Simple seeded randomness so snow looks the same on every screen.
-function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
-
-function drawTree(f, x, y, t, seed) {
-  const green = [20, 140, 50];
-  for (let row = 0; row < 14; row++) {
-    const half = Math.floor(row / 2) + 1;
-    f.rect(x - half, y + row, half * 2 + 1, 1, green);
-  }
-  f.rect(x - 1, y + 14, 3, 3, [110, 60, 20]);
-  f.set(x, y - 1, [255, 220, 0]);
-  const colors = [[255, 40, 40], [255, 200, 0], [60, 160, 255], [255, 255, 255]];
-  for (let k = 0; k < 7; k++) {
-    const row = 2 + Math.floor(rnd(seed + k) * 11);
-    const half = Math.floor(row / 2);
-    const dx = Math.round((rnd(seed + k * 3.3) * 2 - 1) * half);
-    if (Math.floor(t / 400 + k) % 3 !== 0) f.set(x + dx, y + row, colors[k % 4]);
-  }
-}
-
-function drawChristmas(f, st, data, t, now) {
-  for (let i = 0; i < 70; i++) {
-    const speed = 6 + rnd(i) * 10;
-    const x = (rnd(i + 0.5) * W + Math.sin(t / 1500 + i) * 2 + W) % W;
-    const y = (rnd(i + 0.7) * H + (t / 1000) * speed) % H;
-    const b = 90 + rnd(i + 0.9) * 120;
-    f.set(x, y, [b, b, b]);
-  }
-  f.center('MERRY', 3, [235, 40, 40], 2);
-  f.center('CHRISTMAS', 21, [40, 200, 80], 2);
-  drawTree(f, 8, 45, t, 1);
-  drawTree(f, W - 9, 45, t, 2);
-  const y = now.getFullYear();
-  let xmas = new Date(y, 11, 25);
-  const today = new Date(y, now.getMonth(), now.getDate());
-  if (today > xmas) xmas = new Date(y + 1, 11, 25);
-  const days = Math.round((xmas - today) / 864e5);
-  const line = days === 0 ? 'JOY TO THE WORLD' : days === 1 ? '1 DAY TO GO' : `${days} DAYS TO GO`;
-  f.center(line, 50, [255, 215, 80], 1);
-}
-
 export function render(state = {}, data = {}, t = 0, now = new Date(), frame = new Frame()) {
   frame.clear();
   const mode = state.mode || 'message';
   if (mode === 'clock') drawClock(frame, state, data, now);
   else if (mode === 'scoreboard') drawScoreboard(frame, state, data, t);
-  else if (mode === 'christmas') drawChristmas(frame, state, data, t, now);
+  else if (mode === 'christmas') drawHoliday(frame, { ...state, holiday: { theme: 'christmas' } }, data, t, now);
+  else if (mode === 'holiday') drawHoliday(frame, state, data, t, now);
+  else if (mode === 'map') drawMap(frame, state, data, t);
+  else if (mode === 'cfp') drawCfp(frame, state, data, t);
+  else if (mode === 'calendar') drawCalendar(frame, state, now);
+  else if (mode === 'countdown') drawCountdown(frame, state, now, t);
+  else if (mode === 'fun') drawFun(frame, state, t);
   else drawMessage(frame, state, t);
   return frame;
 }

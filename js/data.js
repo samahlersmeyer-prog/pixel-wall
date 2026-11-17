@@ -71,14 +71,59 @@ export async function fetchGame(team) {
       const opp = comp?.competitors?.find(c => !match(c));
       const home = comp?.competitors?.find(c => match(c))?.homeAway === 'home';
       const d = new Date(next.date);
-      const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
-      const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      line = `${home ? 'VS' : '@'} ${opp?.team?.abbreviation || ''} ${day} ${time}`.toUpperCase();
+      const wd = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const md = `${d.getMonth() + 1}/${d.getDate()}`;
+      let h = d.getHours(); const mm = d.getMinutes(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+      const time = `${h}${mm ? ':' + String(mm).padStart(2, '0') : ''}${ap}`;
+      const who = `${home ? 'VS' : '@'} ${opp?.team?.abbreviation || ''}`;
+      line = `${who} ${wd} ${md} ${time}`.toUpperCase();
+      if (line.length > 21) line = `${who} ${md} ${time}`.toUpperCase();
     }
     return { kind: 'next', team: { abbr: team.abbr, color: me.color }, line };
   } catch (e) {
     console.warn('score fetch failed', e);
     return { kind: 'error' };
+  }
+}
+
+// ---------- College Football Playoff ----------
+const CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football/rankings';
+const refId = r => String(r?.team?.$ref || '').replace(/\?.*/, '').split('/').pop();
+
+export async function fetchCfp() {
+  try {
+    // Official seedings (December) if they're current, otherwise the committee's weekly top 25.
+    let poll = 'cfp', j = null;
+    const seed = await fetch(`${CORE}/22`).then(r => r.json()).catch(() => null);
+    if (seed?.date && Date.now() - Date.parse(seed.date) < 40 * 864e5) { j = seed; poll = 'seed'; }
+    if (!j) j = await fetch(`${CORE}/21`).then(r => r.json()).catch(() => null);
+    if (!j || Date.now() - Date.parse(j.date) > 200 * 864e5) {
+      // No current committee rankings: fall back to the AP poll.
+      const ap = await fetch(`${ESPN}/football/college-football/rankings`).then(r => r.json());
+      const r = ap.rankings.find(x => x.type === 'ap');
+      return { poll: 'ap', ranks: r.ranks.slice(0, 12).map(x => ({ abbr: x.team.abbreviation, color: '#' + (x.team.color || 'ffffff') })) };
+    }
+    const ids = j.ranks.slice(0, 12).map(refId);
+    const ap = await fetch(`${ESPN}/football/college-football/rankings`).then(r => r.json()).catch(() => ({ rankings: [] }));
+    const known = {};
+    for (const rk of ap.rankings || []) for (const x of rk.ranks || []) known[x.team.id] = x.team;
+    const teams = await Promise.all(ids.map(async id => known[id] || (await fetch(`${ESPN}/football/college-football/teams/${id}`).then(r => r.json()).catch(() => ({}))).team || {}));
+    return { poll, headline: j.headline, ranks: teams.map(t => ({ abbr: (t.abbreviation || '?').toUpperCase(), color: '#' + (t.color || 'ffffff') })) };
+  } catch (e) {
+    console.warn('cfp fetch failed', e);
+    return { error: true };
+  }
+}
+
+// ---------- weather for every state (map mode) ----------
+export async function fetchMapWeather(states) {
+  try {
+    const lat = states.map(s => s.lat).join(','), lon = states.map(s => s.lon).join(',');
+    const j = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&temperature_unit=fahrenheit`).then(r => r.json());
+    return (Array.isArray(j) ? j : [j]).map(x => x?.current?.temperature_2m ?? null);
+  } catch (e) {
+    console.warn('map weather failed', e);
+    return null;
   }
 }
 
@@ -122,6 +167,27 @@ export function startData(getState, onData) {
     if (w) { data.weather = w; onData(data); }
     setTimeout(pollWeather, 15 * 60 * 1000);
   }
-  pollGame(); pollWeather();
+  const stamps = {};
+  async function pollExtras() {
+    const st = getState() || {};
+    const stale = (k, ms) => !stamps[k] || Date.now() - stamps[k] > ms;
+    if (st.mode === 'cfp' && stale('cfp', 30 * 60 * 1000)) {
+      stamps.cfp = Date.now();
+      data.cfp = await fetchCfp(); onData(data);
+    }
+    if (st.mode === 'map' && (st.map?.view || 'weather') === 'weather' && stale('map', 20 * 60 * 1000)) {
+      stamps.map = Date.now();
+      const { STATES } = await import('./usmap-data.js');
+      const temps = await fetchMapWeather(STATES);
+      if (temps) { data.mapWeather = temps; onData(data); } else stamps.map = 0;
+    }
+    if (st.mode === 'holiday' && st.holiday?.theme === 'gameday' && stale('gd', 120000)) {
+      stamps.gd = Date.now();
+      const team = TEAMS.find(t => t.key === st.scoreboard?.team) || TEAMS[1];
+      data.game = await fetchGame(team); onData(data);
+    }
+    setTimeout(pollExtras, 3000);
+  }
+  pollGame(); pollWeather(); pollExtras();
   return { data, refresh() { clearTimeout(gameTimer); pollGame(); } };
 }

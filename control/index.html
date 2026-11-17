@@ -15,26 +15,37 @@
   header { display: flex; align-items: center; justify-content: space-between; padding: 14px 2px 10px; }
   h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
   #dot { width: 9px; height: 9px; border-radius: 50%; background: #444; display: inline-block; margin-left: 8px; }
-  .preview { background: #000; border-radius: 12px; padding: 8px; border: 1px solid var(--line); }
+  .preview { background: #000; border-radius: 12px; padding: 8px; border: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
   .preview canvas { width: 100%; aspect-ratio: 2 / 1; display: block; }
-  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0; }
-  .tabs button { padding: 12px 4px; font-size: 14px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0; }
+  .tiles button { padding: 12px 2px; font-size: 13px; }
   button { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
            font: inherit; padding: 12px 14px; cursor: pointer; }
   button.on { border-color: var(--accent); background: #13283a; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #001523; font-weight: 600; width: 100%; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
   .card h2 { font-size: 13px; text-transform: uppercase; color: var(--dim); margin: 0 0 10px; letter-spacing: .6px; }
-  textarea { width: 100%; background: #0f0f13; color: var(--text); border: 1px solid var(--line); border-radius: 10px;
-             font: 18px ui-monospace, Menlo, monospace; padding: 10px; text-transform: uppercase; resize: none; }
+  .card h3 { font-size: 14px; margin: 16px 0 8px; color: var(--dim); }
+  textarea, input[type=text], input[type=date], input[type=time] {
+    width: 100%; background: #0f0f13; color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+    font: 16px -apple-system, system-ui, sans-serif; padding: 10px; }
+  textarea { font: 18px ui-monospace, Menlo, monospace; text-transform: uppercase; resize: none; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .row > * { flex: 1; }
   .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
   .sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; padding: 0; }
   .sw.on { border-color: #fff; }
-  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
-  .teams { display: grid; gap: 8px; }
-  .teams button { text-align: left; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .list { display: grid; gap: 8px; }
+  .list button { text-align: left; }
+  .states { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+  .states button { padding: 8px 0; font-size: 13px; }
+  .ev { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .ev small { color: var(--dim); display: block; font-size: 12px; }
+  .ev button { padding: 6px 10px; font-size: 13px; }
   input[type=range] { width: 100%; }
-  .hidden { display: none; }
+  .hidden { display: none !important; }
   .links input { width: 100%; background: #0f0f13; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 13px; margin: 4px 0 10px; }
   .small { color: var(--dim); font-size: 13px; }
 </style>
@@ -51,18 +62,22 @@
 <main id="app" class="hidden">
   <div class="preview"><canvas id="preview"></canvas></div>
 
-  <div class="tabs">
-    <button data-mode="message">Message</button>
-    <button data-mode="clock">Clock</button>
-    <button data-mode="scoreboard">Scores</button>
-    <button data-mode="christmas">Christmas</button>
+  <div class="tiles">
+    <button data-tile="message">Message</button>
+    <button data-tile="clock">Clock</button>
+    <button data-tile="scoreboard">Scores</button>
+    <button data-tile="cfp">CFP</button>
+    <button data-tile="calendar">Calendar</button>
+    <button data-tile="map">Map</button>
+    <button data-tile="holiday">Holidays</button>
+    <button data-tile="fun">Fun</button>
   </div>
 
   <section class="card" data-panel="message">
     <h2>Message</h2>
     <textarea id="text" rows="2" maxlength="80" placeholder="TYPE A MESSAGE"></textarea>
     <div class="swatches" id="swatches"></div>
-    <div class="seg" id="anim">
+    <div class="grid3" id="anim">
       <button data-anim="static">Still</button>
       <button data-anim="scroll">Scroll</button>
       <button data-anim="rainbow">Rainbow</button>
@@ -70,13 +85,62 @@
     <button class="primary" id="send">Send to wall</button>
   </section>
 
-  <section class="card" data-panel="scoreboard">
-    <h2>Team</h2>
-    <div class="teams" id="teams"></div>
+  <section class="card" data-panel="clock">
+    <h2>Clock</h2>
+    <p class="small">Time, date and Fort Wayne weather.</p>
+    <button class="primary" data-show="clock">Show clock</button>
   </section>
 
-  <section class="card" data-panel="clock"><h2>Clock</h2><p class="small">Time, date and Fort Wayne weather.</p></section>
-  <section class="card" data-panel="christmas"><h2>Christmas</h2><p class="small">Snow, trees and a countdown to Christmas Day.</p></section>
+  <section class="card" data-panel="scoreboard">
+    <h2>Team</h2>
+    <div class="list" id="teams"></div>
+  </section>
+
+  <section class="card" data-panel="cfp">
+    <h2>College Football Playoff</h2>
+    <p class="small">The committee's latest top 12, then the projected first round and quarterfinals. Switches to the official seeding once the bracket is set.</p>
+    <button class="primary" data-show="cfp">Show CFP</button>
+  </section>
+
+  <section class="card" data-panel="calendar">
+    <h2>Calendar</h2>
+    <div id="events"></div>
+    <h3>Add an event</h3>
+    <input type="text" id="evTitle" placeholder="What (e.g. XC practice)" maxlength="40" style="margin-bottom:8px">
+    <div class="row"><input type="date" id="evDate"><input type="time" id="evTime"></div>
+    <div class="grid2"><button id="evAdd">Add event</button><button class="primary" data-show="calendar">Show calendar</button></div>
+    <h3>Countdown</h3>
+    <input type="text" id="cdTitle" placeholder="Countdown to... (e.g. Christmas)" maxlength="21" style="margin-bottom:8px">
+    <div class="row"><input type="date" id="cdDate"></div>
+    <button class="primary" id="cdShow">Show countdown</button>
+  </section>
+
+  <section class="card" data-panel="map">
+    <h2>U.S. map</h2>
+    <div class="grid3">
+      <button data-mapview="weather">Weather</button>
+      <button data-mapview="quiz">State quiz</button>
+      <button data-mapview="visited">Been there</button>
+    </div>
+    <div id="visitedBox">
+      <p class="small">Tap the states you've been to.</p>
+      <div class="states" id="states"></div>
+    </div>
+  </section>
+
+  <section class="card" data-panel="holiday">
+    <h2>Holidays</h2>
+    <div class="list" id="themes"></div>
+    <h3>Birthday</h3>
+    <div class="row"><input type="text" id="bdName" placeholder="Name" maxlength="12"><input type="date" id="bdDate"></div>
+    <button id="bdSave">Save birthday</button>
+    <p class="small">Auto shows the holiday that's coming up, and the birthday screen for 3 days before.</p>
+  </section>
+
+  <section class="card" data-panel="fun">
+    <h2>Fun</h2>
+    <div class="grid2" id="funs"></div>
+  </section>
 
   <section class="card">
     <h2>Brightness</h2>
@@ -94,9 +158,13 @@
 import { render, Frame } from '../js/renderer.js';
 import { LedCanvas } from '../js/led-canvas.js';
 import { startData, TEAMS } from '../js/data.js';
+import { THEMES } from '../js/modes-holiday.js';
+import { FUN } from '../js/modes-fun.js';
+import { STATES } from '../js/usmap-data.js';
 import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js';
 
 const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
 const COLORS = ['#ffffff', '#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#30d5c8', '#3fa9f5', '#5e5ce6', '#bf5af2', '#ff2d92', '#860038', '#bb0000'];
 let id = wallId();
 
@@ -109,8 +177,14 @@ if (!id) {
     await setState(id, { mode: 'message', message: { text: 'HELLO MAX', color: '#3fa9f5', anim: 'static' }, scoreboard: { team: 'cavs' }, brightness: 80 });
     location.reload();
   };
-} else {
-  start();
+} else start();
+
+function btn(label, attrs, onclick) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  Object.entries(attrs).forEach(([k, v]) => b.dataset[k] = v);
+  b.onclick = onclick;
+  return b;
 }
 
 function start() {
@@ -120,63 +194,123 @@ function start() {
   $('#tvLink').value = `${base}/display/#w=${id}`;
   $('#phoneLink').value = `${base}/control/#w=${id}`;
   $('#linksBtn').onclick = () => $('#links').classList.toggle('hidden');
-  document.querySelectorAll('.links input').forEach(i => i.onclick = () => i.select());
+  $$('.links input').forEach(i => i.onclick = () => i.select());
 
   let state = {};
   let draft = { text: '', color: '#ffffff', anim: 'static' };
+  let tile = null;
   const led = new LedCanvas($('#preview'));
   addEventListener('resize', () => led.resize());
   const live = startData(() => state, () => {});
+  const set = patch => setState(id, patch);
 
-  // Color swatches
+  // ----- message -----
   COLORS.forEach(c => {
-    const b = document.createElement('button');
-    b.className = 'sw'; b.style.background = c; b.dataset.c = c;
-    b.onclick = () => { draft.color = c; paint(); };
+    const b = btn('', { c }, () => { draft.color = c; paint(); });
+    b.className = 'sw'; b.style.background = c;
     $('#swatches').appendChild(b);
   });
-  // Team buttons
-  TEAMS.forEach(t => {
-    const b = document.createElement('button');
-    b.textContent = t.label; b.dataset.team = t.key;
-    b.onclick = () => setState(id, { mode: 'scoreboard', scoreboard: { team: t.key, label: t.abbr } });
-    $('#teams').appendChild(b);
-  });
-
-  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
-    if (b.dataset.mode === 'message') { panel('message'); return; }
-    setState(id, { mode: b.dataset.mode });
-  });
-  document.querySelectorAll('[data-anim]').forEach(b => b.onclick = () => { draft.anim = b.dataset.anim; paint(); });
+  $$('[data-anim]').forEach(b => b.onclick = () => { draft.anim = b.dataset.anim; paint(); });
   $('#text').oninput = e => { draft.text = e.target.value.toUpperCase(); };
   $('#send').onclick = async () => {
-    const text = draft.text.trim() || 'HELLO MAX';
-    await setState(id, { mode: 'message', message: { text, color: draft.color, anim: draft.anim } });
-    $('#send').textContent = 'Sent!';
-    setTimeout(() => $('#send').textContent = 'Send to wall', 1200);
+    await set({ mode: 'message', message: { text: draft.text.trim() || 'HELLO MAX', color: draft.color, anim: draft.anim } });
+    $('#send').textContent = 'Sent!'; setTimeout(() => $('#send').textContent = 'Send to wall', 1200);
   };
-  $('#bright').oninput = e => setState(id, { brightness: Number(e.target.value) });
 
-  let shownPanel = null;
-  function panel(name) {
-    shownPanel = name;
-    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
-    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === name));
+  // ----- simple "show" buttons -----
+  $$('[data-show]').forEach(b => b.onclick = () => set({ mode: b.dataset.show }));
+
+  // ----- scores -----
+  TEAMS.forEach(t => $('#teams').appendChild(btn(t.label, { team: t.key }, () => set({ mode: 'scoreboard', scoreboard: { team: t.key, label: t.abbr } }))));
+
+  // ----- calendar + countdown -----
+  const today = new Date();
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  $('#evDate').value = iso(today);
+  $('#evAdd').onclick = () => {
+    const title = $('#evTitle').value.trim();
+    if (!title || !$('#evDate').value) return;
+    const events = [...(state.events || []).filter(Boolean), { title, date: $('#evDate').value, time: $('#evTime').value || '' }];
+    set({ events });
+    $('#evTitle').value = ''; $('#evTime').value = '';
+  };
+  function drawEvents() {
+    const box = $('#events'); box.innerHTML = '';
+    const evs = (state.events || []).filter(Boolean).map((e, i) => ({ ...e, i })).filter(e => e.date >= iso(new Date()))
+      .sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')));
+    if (!evs.length) { box.innerHTML = '<p class="small">No upcoming events yet.</p>'; return; }
+    evs.forEach(e => {
+      const row = document.createElement('div'); row.className = 'ev';
+      const d = new Date(e.date + 'T12:00:00');
+      const when = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (e.time ? ' · ' + new Date(`2000-01-01T${e.time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '');
+      row.innerHTML = `<div>${e.title.replace(/</g, '&lt;')}<small>${when}</small></div>`;
+      row.appendChild(btn('Remove', {}, () => set({ events: (state.events || []).filter((x, j) => x && j !== e.i) })));
+      box.appendChild(row);
+    });
   }
+  $('#cdShow').onclick = () => {
+    if (!$('#cdDate').value) return;
+    set({ mode: 'countdown', countdown: { title: $('#cdTitle').value.trim() || 'THE BIG DAY', date: $('#cdDate').value } });
+  };
+
+  // ----- map -----
+  $$('[data-mapview]').forEach(b => b.onclick = () => set({ mode: 'map', map: { view: b.dataset.mapview } }));
+  STATES.filter(s => s.abbr !== 'DC').sort((a, b) => a.abbr.localeCompare(b.abbr)).forEach(s => {
+    $('#states').appendChild(btn(s.abbr, { st: s.abbr }, () => {
+      const v = new Set(state.visited || []);
+      v.has(s.abbr) ? v.delete(s.abbr) : v.add(s.abbr);
+      set({ mode: 'map', map: { view: 'visited' }, visited: [...v] });
+    }));
+  });
+
+  // ----- holidays -----
+  THEMES.forEach(([key, label]) => $('#themes').appendChild(btn(label, { theme: key }, () => set({ mode: 'holiday', holiday: { theme: key } }))));
+  $('#bdSave').onclick = () => {
+    if (!$('#bdDate').value) return;
+    set({ birthday: { name: $('#bdName').value.trim(), date: $('#bdDate').value }, mode: 'holiday', holiday: { theme: 'birthday' } });
+  };
+
+  // ----- fun -----
+  FUN.forEach(([key, label]) => $('#funs').appendChild(btn(label, { fun: key }, () => set({ mode: 'fun', fun: { view: key } }))));
+
+  $('#bright').oninput = e => set({ brightness: Number(e.target.value) });
+
+  // ----- tiles -----
+  const tileOf = m => m === 'countdown' ? 'calendar' : m === 'christmas' ? 'holiday' : m;
+  function showTile(name) {
+    tile = name;
+    $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
+  }
+  $$('[data-tile]').forEach(b => b.onclick = () => showTile(b.dataset.tile));
+
   function paint() {
-    document.querySelectorAll('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === draft.color));
-    document.querySelectorAll('[data-anim]').forEach(b => b.classList.toggle('on', b.dataset.anim === draft.anim));
-    document.querySelectorAll('[data-team]').forEach(b => b.classList.toggle('on', b.dataset.team === state.scoreboard?.team));
+    const mode = tileOf(state.mode || 'message');
+    $$('[data-tile]').forEach(b => b.classList.toggle('on', b.dataset.tile === mode));
+    $$('.sw').forEach(b => b.classList.toggle('on', b.dataset.c === draft.color));
+    $$('[data-anim]').forEach(b => b.classList.toggle('on', b.dataset.anim === draft.anim));
+    $$('[data-team]').forEach(b => b.classList.toggle('on', state.mode === 'scoreboard' && b.dataset.team === state.scoreboard?.team));
+    $$('[data-mapview]').forEach(b => b.classList.toggle('on', state.mode === 'map' && b.dataset.mapview === (state.map?.view || 'weather')));
+    $$('[data-theme]').forEach(b => b.classList.toggle('on', state.mode === 'holiday' && b.dataset.theme === (state.holiday?.theme || 'auto')));
+    $$('[data-fun]').forEach(b => b.classList.toggle('on', state.mode === 'fun' && b.dataset.fun === (state.fun?.view || 'life')));
+    const v = new Set(state.visited || []);
+    $$('[data-st]').forEach(b => b.classList.toggle('on', v.has(b.dataset.st)));
+    $('#visitedBox').classList.toggle('hidden', !(state.mode === 'map' && state.map?.view === 'visited'));
+    drawEvents();
   }
 
   let first = true;
   watchState(id, s => {
     const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
     state = s;
-    if (first && s.message) { draft = { ...draft, ...s.message }; $('#text').value = draft.text; first = false; }
+    if (first) {
+      if (s.message) { draft = { ...draft, ...s.message }; $('#text').value = draft.text; }
+      if (s.birthday) { $('#bdName').value = s.birthday.name || ''; $('#bdDate').value = s.birthday.date || ''; }
+      if (s.countdown) { $('#cdTitle').value = s.countdown.title || ''; $('#cdDate').value = s.countdown.date || ''; }
+      first = false;
+    }
     $('#bright').value = s.brightness ?? 80;
     led.brightness = Math.max(0.35, (s.brightness ?? 80) / 100);
-    if (changed || !shownPanel) panel(s.mode || 'message');
+    if (!tile) showTile(tileOf(s.mode || 'message'));
     paint();
     if (changed) live.refresh();
   });
