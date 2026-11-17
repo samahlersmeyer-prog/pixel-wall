@@ -1,5 +1,6 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
 import { hsv, W, H } from './renderer.js';
+import { holidaySurprise } from './holiday-events.js';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
@@ -243,5 +244,11 @@ export function drawHoliday(f, st, data, t, now) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let theme = st.holiday?.theme || 'auto';
   if (theme === 'auto') theme = autoTheme(today, st);
-  (T[theme] || T.christmas)(f, t, today, st, data);
+  if (!T[theme]) theme = 'christmas';
+  T[theme](f, t, today, st, data);
+  if (st.holiday?.surprises === false) return;
+  const ny = nextDate('newyear', today, st);
+  const team = st.scoreboard?.team || 'osu-fb';
+  const sport = team === 'cavs' || team === 'osu-bb' ? 'basketball' : team === 'guardians' ? 'baseball' : 'football';
+  holidaySurprise(f, theme, t, data, { year: ny ? ny.getFullYear() : today.getFullYear() + 1, sport });
 }

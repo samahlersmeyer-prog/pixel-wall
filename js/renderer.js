@@ -70,6 +70,15 @@ export class Frame {
   sprite(rows, x, y, palette, scale = 1) {
     rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = palette[r[i]]; if (c) this.rect(x + i * scale, y + j * scale, scale, scale, c); } });
   }
+  disc(cx, cy, r, c) {
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r + 0.5) this.set(x, y, c);
+    }
+  }
+  line(x0, y0, x1, y1, c) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let i = 0; i <= n; i++) this.set(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c);
+  }
   dim(k) { for (let i = 0; i < this.buf.length; i++) this.buf[i] *= k; }
   center(str, y, color, scale = 1, x0 = 0, x1 = W) {
     const w = this.textWidth(str, scale);

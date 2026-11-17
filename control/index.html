@@ -51,7 +51,7 @@
 </style>
 </head>
 <body>
-<header><h1>Pixel Wall<span id="dot"></span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v3</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
 
 <section id="setup" class="card hidden">
   <h2>Set up your wall</h2>
@@ -72,6 +72,7 @@
     <button data-tile="holiday">Holidays</button>
     <button data-tile="fun">Fun</button>
   </div>
+  <p class="small" style="margin:-6px 2px 12px">Tap a tile to put it on the wall, then pick options below.</p>
 
   <section class="card" data-panel="message">
     <h2>Message</h2>
@@ -130,11 +131,12 @@
 
   <section class="card" data-panel="holiday">
     <h2>Holidays</h2>
+    <button class="primary" id="surprise" style="margin-bottom:12px">Surprise! Play a scene now</button>
     <div class="list" id="themes"></div>
     <h3>Birthday</h3>
     <div class="row"><input type="text" id="bdName" placeholder="Name" maxlength="12"><input type="date" id="bdDate"></div>
     <button id="bdSave">Save birthday</button>
-    <p class="small">Auto shows the holiday that's coming up, and the birthday screen for 3 days before.</p>
+    <p class="small">Auto shows the holiday that's coming up, and the birthday screen for 3 days before. A surprise scene (Santa, a snowman, a ghost...) plays about every 30 seconds.</p>
   </section>
 
   <section class="card" data-panel="fun">
@@ -203,6 +205,8 @@ function start() {
   addEventListener('resize', () => led.resize());
   const live = startData(() => state, () => {});
   const set = patch => setState(id, patch);
+  const frame = new Frame();
+  const t0 = performance.now();
 
   // ----- message -----
   COLORS.forEach(c => {
@@ -264,7 +268,7 @@ function start() {
   });
 
   // ----- holidays -----
-  THEMES.forEach(([key, label]) => $('#themes').appendChild(btn(label, { theme: key }, () => set({ mode: 'holiday', holiday: { theme: key } }))));
+  THEMES.forEach(([key, label]) => $('#themes').appendChild(btn(label, { theme: key }, () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: key } }))));
   $('#bdSave').onclick = () => {
     if (!$('#bdDate').value) return;
     set({ birthday: { name: $('#bdName').value.trim(), date: $('#bdDate').value }, mode: 'holiday', holiday: { theme: 'birthday' } });
@@ -281,7 +285,14 @@ function start() {
     tile = name;
     $$('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
   }
-  $$('[data-tile]').forEach(b => b.onclick = () => showTile(b.dataset.tile));
+  // Tapping a tile puts that mode on the wall right away (keeping its last options).
+  $$('[data-tile]').forEach(b => b.onclick = () => {
+    const t = b.dataset.tile;
+    showTile(t);
+    if (t !== 'message' && tileOf(state.mode) !== t) set({ mode: t });
+    document.querySelector(`[data-panel="${t}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  $('#surprise').onclick = () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: state.holiday?.theme || 'auto', kick: Date.now() } });
 
   function paint() {
     const mode = tileOf(state.mode || 'message');
@@ -298,8 +309,10 @@ function start() {
     drawEvents();
   }
 
-  let first = true;
+  let first = true, lastKick = null;
   watchState(id, s => {
+    if (!first && s.holiday?.kick && s.holiday.kick !== lastKick) live.data.kick = { t: performance.now() - t0, n: s.holiday.kick };
+    lastKick = s.holiday?.kick;
     const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
     state = s;
     if (first) {
@@ -316,8 +329,6 @@ function start() {
   });
   watchConnection(ok => $('#dot').style.background = ok ? '#30d158' : '#ff453a');
 
-  const frame = new Frame();
-  const t0 = performance.now();
   (function loop() {
     render(state, live.data, performance.now() - t0, new Date(), frame);
     led.draw(frame);

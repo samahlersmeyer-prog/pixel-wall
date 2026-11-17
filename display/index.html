@@ -34,11 +34,15 @@ if (!id) {
 }
 
 const led = new LedCanvas(document.getElementById('screen'));
+const t0 = performance.now();
 addEventListener('resize', () => led.resize());
 
 let state = { mode: 'message', message: { text: 'CONNECTING...', color: '#666666', anim: 'static' } };
 const live = startData(() => state, () => {});
+let lastKick = null, firstState = true;
 watchState(id, s => {
+  if (!firstState && s.holiday?.kick && s.holiday.kick !== lastKick) live.data.kick = { t: performance.now() - t0, n: s.holiday.kick };
+  lastKick = s.holiday?.kick; firstState = false;
   const changed = s.mode !== state.mode || s.scoreboard?.team !== state.scoreboard?.team;
   state = s;
   led.brightness = (s.brightness ?? 80) / 100;
@@ -47,7 +51,6 @@ watchState(id, s => {
 watchConnection(ok => document.getElementById('dot').style.background = ok ? '#1d6b2b' : '#7a1d1d');
 
 const frame = new Frame();
-const t0 = performance.now();
 function loop() {
   render(state, live.data, performance.now() - t0, new Date(), frame);
   led.draw(frame);
