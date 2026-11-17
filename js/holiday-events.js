@@ -1,8 +1,9 @@
 // Surprise scenes that play every so often on each holiday theme
 // (Santa flies by, a snowman gets built, a ghost says BOO...).
 // Every scene is drawn from the time alone, so it looks the same on every screen.
-import { W, H, hsv, Frame } from './renderer.js?v=7';
-import { fireworks } from './modes-holiday.js?v=7';
+import { W, H, hsv, Frame } from './renderer.js?v=9';
+import { fireworks } from './modes-holiday.js?v=9';
+import { EVENTS2, GENTLE } from './modes-holiday2.js?v=9';
 
 const rnd = n => { const x = Math.sin(n * 78.233) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -517,6 +518,7 @@ const EVENTS = {
   thanksgiving: [[turkeyRun, 6000], [pie, 6000], [footballPass, 7000]],
   birthday: [[blowCandles, 9000], [balloons, 8000], [presentSurprise, 9000]],
   gameday: [[bigPlay, 6000], [crowdWave, 8000], [clapChant, 6000]],
+  ...EVENTS2,
 };
 export const SCENE_COUNT = Object.fromEntries(Object.entries(EVENTS).map(([k, v]) => [k, v.length]));
 export const EVERY = 30000;  // a surprise every 30 seconds, forever
@@ -546,7 +548,7 @@ export function holidaySurprise(f, theme, t, data, ctx) {
     }
   }
   if (!pick) return false;
-  f.dim(0.22);
+  f.dim(GENTLE.has(theme) ? 0.55 : 0.22);   // solemn days stay softly visible behind
   pick[0](f, lt, lt / pick[1], { ...ctx, dur: pick[1] });
   return true;
 }

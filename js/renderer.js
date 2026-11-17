@@ -1,11 +1,11 @@
 // Shared renderer: turns the wall's state + live data into a 128x64 RGB frame.
 // The TV simulator, the phone preview and (later) the LED board all use this,
 // so what you see on the TV is exactly what the panels will show.
-import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=7';
-import { drawMap } from './modes-map.js?v=7';
-import { drawCfp, drawCalendar, drawCountdown, drawForecast } from './modes-info.js?v=7';
-import { drawHoliday } from './modes-holiday.js?v=7';
-import { drawFun } from './modes-fun.js?v=7';
+import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=9';
+import { drawMap } from './modes-map.js?v=9';
+import { drawCfp, drawCalendar, drawCountdown, drawForecast } from './modes-info.js?v=9';
+import { drawHoliday } from './modes-holiday.js?v=9';
+import { drawFun } from './modes-fun.js?v=9';
 
 export const W = 128;
 export const H = 64;
@@ -78,6 +78,22 @@ export class Frame {
   line(x0, y0, x1, y1, c) {
     const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
     for (let i = 0; i <= n; i++) this.set(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c);
+  }
+  // Light that adds to what's underneath (glows, rays, sparkles).
+  add(x, y, c) {
+    x = Math.round(x); y = Math.round(y);
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const i = (y * W + x) * 3;
+    this.buf[i] += c[0]; this.buf[i + 1] += c[1]; this.buf[i + 2] += c[2];
+  }
+  lineAdd(x0, y0, x1, y1, c) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+    for (let i = 0; i <= n; i++) this.add(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c);
+  }
+  discAdd(cx, cy, r, c) {
+    for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r + 0.5) this.add(x, y, c);
+    }
   }
   dim(k) { for (let i = 0; i < this.buf.length; i++) this.buf[i] *= k; }
   center(str, y, color, scale = 1, x0 = 0, x1 = W) {

@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=7';
+import { W, H } from './renderer.js?v=9';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -138,7 +138,35 @@ function sparks(f, lt, p) {
   }
 }
 
-const SCENES = [[dogNap, 22000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000]];
+const SANTA = [
+  ['....WW......', '...RRRW.....', '..RRRRR.....', '.WWWWWWW....', '.SSSSSSS....', '.SKSSSKS....', '.WWWSWWW....', '.WWWWWWW....', '..WWWWW.....',
+   'RRRRRRRRR...', 'RRRRRRRRRR..', 'RRRRWWRRRR..', 'KKKKGKKKKK..', 'RRRRRRRRRR..', 'RRRRRRRRRR..', '.RRR..RRR...', '.RRR..RRR...', '.KKK..KKK...', 'KKKK..KKKK..'],
+  ['....WW......', '...RRRW.....', '..RRRRR.....', '.WWWWWWW....', '.SSSSSSS....', '.SKSSSKS....', '.WWWSWWW....', '.WWWWWWW....', '..WWWWW.....',
+   'RRRRRRRRR...', 'RRRRRRRRRR..', 'RRRRWWRRRR..', 'KKKKGKKKKK..', 'RRRRRRRRRR..', 'RRRRRRRRRR..', '..RRRRRR....', '..RR..RR....', '.KKK.KKK....', 'KKK..KKK....'],
+];
+const SANTA_P = { W: [245, 245, 245], R: [210, 30, 35], S: [255, 205, 170], K: [25, 20, 20], G: [255, 210, 60] };
+
+// Santa strolls in, tucks a candy cane into one stocking at random, and heads out.
+function santaVisit(f, lt, p, k) {
+  const i = Math.floor(rnd(k * 7.13 + 1) * 7);
+  const target = STOCK_X[i] - 9;
+  let x;
+  if (p < 0.3) x = -14 + ease(p / 0.3) * (target + 14);
+  else if (p < 0.65) x = target;
+  else x = target + ease((p - 0.65) / 0.35) * (W + 20 - target);
+  const walking = p < 0.3 || p > 0.65;
+  f.sprite(SANTA[walking ? Math.floor(lt / 180) % 2 : 0], Math.round(x), 44, SANTA_P);
+  const reach = seg(p, 0.33, 0.45) - seg(p, 0.5, 0.6);
+  if (reach > 0) f.line(Math.round(x) + 9, 54, Math.round(x) + 9 + 3 * reach, Math.round(54 - reach * 22), [210, 30, 35]);
+  if (p > 0.45) {
+    const sx = STOCK_X[i] + 4;
+    for (let j = 0; j < 8; j++) f.set(sx, 7 + j, j % 2 ? [255, 255, 255] : [230, 30, 30]);
+    f.set(sx + 1, 6, [255, 255, 255]); f.set(sx + 2, 7, [230, 30, 30]); f.set(sx + 2, 8, [255, 255, 255]);
+  }
+  if (p > 0.48 && p < 0.7) f.text('HO HO HO', Math.max(0, Math.min(W - 47, Math.round(x) - 14)), 36, [255, 255, 255]);
+}
+
+const SCENES = [[dogNap, 22000], [santaVisit, 16000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000]];
 const EVERY = 60000, START = 20000;
 
 function activeScene(t, data) {

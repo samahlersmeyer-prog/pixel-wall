@@ -1,8 +1,8 @@
 // Renders every holiday scene at a few moments: node tools/preview-scenes.mjs out-dir
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
-import { render, W, H } from '../js/renderer.js?v=7';
-import { SCENE_COUNT } from '../js/holiday-events.js?v=7';
+import { render, W, H } from '../js/renderer.js?v=9';
+import { SCENE_COUNT } from '../js/holiday-events.js?v=9';
 const out = process.argv[2] || 'scene-previews'; mkdirSync(out, { recursive: true });
 const S = 3;
 function png(frame) {

@@ -1,7 +1,8 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js?v=7';
-import { holidaySurprise } from './holiday-events.js?v=7';
-import { drawFireplace } from './modes-fireplace.js?v=7';
+import { hsv, W, H } from './renderer.js?v=9';
+import { holidaySurprise } from './holiday-events.js?v=9';
+import { drawFireplace } from './modes-fireplace.js?v=9';
+import { T2, THEMES2, DATES, advent1 } from './modes-holiday2.js?v=9';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
@@ -17,23 +18,55 @@ function thanksgiving(y) { const d = new Date(y, 10, 1); const first = (4 - d.ge
 const DAY = 864e5;
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
-// [key, date(year), days of lead-up season, days it stays up after]
+// Auto picks the FIRST entry whose window contains today, so order = priority.
+// [key, date(year), days of lead-up before, days it stays up after (number or year => number)]
 const HOLIDAYS = [
-  ['newyear', y => new Date(y, 0, 1), 6, 1],
-  ['valentines', y => new Date(y, 1, 14), 13, 0],
-  ['stpatricks', y => new Date(y, 2, 17), 7, 0],
-  ['easter', easter, 14, 7],
-  ['july4', y => new Date(y, 6, 4), 7, 0],
+  ['newyear', y => new Date(y, 0, 1), 1, 0],
+  ['christmas', y => new Date(y, 11, 25), 1, 11],          // Christmas Eve through the 12 days of Christmas
+  ['epiphany', DATES.epiphany, 0, 6],
+  ['mlk', DATES.mlk, 2, 0],
+  ['lent', DATES.ashwednesday, 0, 0],                       // Ash Wednesday itself wins over Valentine's
+  ['valentines', y => new Date(y, 1, 14), 6, 0],
+  ['presidents', DATES.presidents, 2, 0],
+  ['stpatricks', y => new Date(y, 2, 17), 2, 0],
+  ['goodfriday', DATES.goodfriday, 1, 1],                   // Maundy Thursday - Holy Saturday
+  ['easter', easter, 0, 7],
+  ['palmsunday', DATES.palmsunday, 0, 3],                   // Palm Sunday - Wednesday of Holy Week
+  ['lent', DATES.ashwednesday, 0, 38],                      // the rest of Lent
+  ['ascension', DATES.ascension, 1, 0],
+  ['pentecost', DATES.pentecost, 2, 0],
+  ['memorial', DATES.memorial, 2, 0],
+  ['july4', y => new Date(y, 6, 4), 4, 0],
+  ['labor', DATES.labor, 2, 0],
+  ['columbus', DATES.columbus, 1, 0],
+  ['reformation', DATES.reformation, 0, 0],                 // Oct 31 alternates with Halloween
   ['halloween', y => new Date(y, 9, 31), 30, 0],
-  ['thanksgiving', thanksgiving, 21, 0],
-  ['christmas', y => new Date(y, 11, 25), 27, 0],
+  ['allsaints', DATES.allsaints, 0, 0],
+  ['veterans', DATES.veterans, 3, 0],
+  ['thanksgiving', thanksgiving, 14, 0],
+  ['advent', advent1, 0, y => Math.round((new Date(y, 11, 23) - advent1(y)) / DAY)],
 ];
+const afterDays = (h, y) => typeof h[3] === 'function' ? h[3](y) : h[3];
+function nextFor(h, today) {
+  for (const y of [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1]) {
+    const d = h[1](y);
+    if (addDays(d, afterDays(h, y)) >= today) return d;
+  }
+  return null;
+}
 
+const L2 = Object.fromEntries(THEMES2);
+// In calendar order for the phone.
 export const THEMES = [
-  ['auto', 'Auto (by date)'], ['fireplace', 'Fireplace (cozy, all season)'], ['christmas', 'Christmas'], ['newyear', "New Year's"], ['valentines', "Valentine's Day"],
-  ['stpatricks', "St. Patrick's Day"], ['easter', 'Easter'], ['july4', '4th of July'], ['halloween', 'Halloween'],
-  ['thanksgiving', 'Thanksgiving'], ['birthday', 'Birthday'], ['gameday', 'Game Day'],
+  ['auto', 'Auto (by date)'], ['loop', 'Holiday loop (your picks)'], ['fireplace', 'Fireplace (cozy, all season)'],
+  ['newyear', "New Year's"], ['epiphany', L2.epiphany], ['mlk', L2.mlk], ['valentines', "Valentine's Day"], ['presidents', L2.presidents],
+  ['lent', L2.lent], ['stpatricks', "St. Patrick's Day"], ['palmsunday', L2.palmsunday], ['goodfriday', L2.goodfriday], ['easter', 'Easter'],
+  ['ascension', L2.ascension], ['pentecost', L2.pentecost], ['memorial', L2.memorial], ['july4', '4th of July'], ['labor', L2.labor],
+  ['columbus', L2.columbus], ['reformation', L2.reformation], ['halloween', 'Halloween'], ['allsaints', L2.allsaints],
+  ['veterans', L2.veterans], ['thanksgiving', 'Thanksgiving'], ['advent', L2.advent], ['christmas', 'Christmas'],
+  ['birthday', 'Birthday'], ['gameday', 'Game Day'],
 ];
+export const LOOP_DEFAULT = ['christmas', 'thanksgiving', 'newyear'];
 
 function nextDate(key, today, st) {
   if (key === 'birthday') {
@@ -45,27 +78,25 @@ function nextDate(key, today, st) {
     return dt;
   }
   const h = HOLIDAYS.find(x => x[0] === key);
-  if (!h) return null;
-  for (const y of [today.getFullYear(), today.getFullYear() + 1]) {
-    const d = h[1](y);
-    if (addDays(d, h[3]) >= today) return d;
-  }
-  return null;
+  return h ? nextFor(h, today) : null;
 }
 
 export function autoTheme(today, st) {
   const bd = nextDate('birthday', today, st);
   if (bd && (bd - today) / DAY <= 3) return 'birthday';
-  for (const [key, , lead, after] of HOLIDAYS) {
-    const d = nextDate(key, today, st);
+  for (const h of HOLIDAYS) {
+    const d = nextFor(h, today);
     if (!d) continue;
     const diff = Math.round((d - today) / DAY);
-    if (diff <= lead && diff >= -after) return key;
+    if (diff <= h[2] && diff >= -afterDays(h, d.getFullYear())) return h[0];
   }
-  // Otherwise show the next holiday coming up.
+  // Otherwise count down to the next big holiday.
+  const BIG = new Set(['christmas', 'easter', 'july4', 'thanksgiving', 'halloween', 'valentines', 'stpatricks', 'newyear']);
   let best = 'christmas', bestDiff = 1e9;
-  for (const [key] of HOLIDAYS) {
-    const d = nextDate(key, today, st);
+  for (const h of HOLIDAYS) {
+    const key = h[0];
+    if (!BIG.has(key)) continue;
+    const d = nextFor(h, today);
     const diff = d ? (d - today) / DAY : 1e9;
     if (diff >= 0 && diff < bestDiff) { best = key; bestDiff = diff; }
   }
@@ -247,15 +278,23 @@ const T = {
 export function drawHoliday(f, st, data, t, now) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let theme = st.holiday?.theme || 'auto';
-  if (theme === 'auto') theme = autoTheme(today, st);
+  if (theme === 'loop') {
+    const list = (st.holiday?.loop?.length ? st.holiday.loop : LOOP_DEFAULT).filter(k => k !== 'loop' && k !== 'auto');
+    theme = list[Math.floor(t / ((st.holiday?.loopSeconds || 60) * 1000)) % list.length] || 'christmas';
+  }
+  if (theme === 'auto') {
+    theme = autoTheme(today, st);
+    // Oct 31: Reformation Day and Halloween take turns every 2 minutes.
+    if (theme === 'reformation' && Math.floor(t / 120000) % 2) theme = 'halloween';
+  }
   if (theme === 'fireplace') { drawFireplace(f, st, data, t, now); return; }
-  if (!T[theme]) theme = 'christmas';
-  T[theme](f, t, today, st, data);
+  if (T2[theme]) T2[theme](f, t, today, st, { line: (k, on, label) => countdownLine(k, today, st, on, label) });
+  else { if (!T[theme]) theme = 'christmas'; T[theme](f, t, today, st, data); }
   if (st.holiday?.surprises === false) return;
   const ny = nextDate('newyear', today, st);
   const team = st.scoreboard?.team || 'osu-fb';
   const sport = team === 'cavs' || team === 'osu-bb' ? 'basketball' : team === 'guardians' ? 'baseball' : 'football';
   const look = teamLook(team);
   const cheer = look[3] ? `${look[0]} ${look[3]}` : look[0];
-  holidaySurprise(f, theme, t, data, { year: ny ? ny.getFullYear() : today.getFullYear() + 1, sport, colors: [look[1], look[2]], cheer });
+  holidaySurprise(f, theme, t, data, { year: ny ? ny.getFullYear() : today.getFullYear() + 1, sport, colors: [look[1], look[2]], cheer, day: today.getDate() });
 }

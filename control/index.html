@@ -51,7 +51,7 @@
 </style>
 </head>
 <body>
-<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v7</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v9</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
 
 <section id="setup" class="card hidden">
   <h2>Set up your wall</h2>
@@ -136,6 +136,13 @@
     <button class="primary" id="surprise" style="margin-bottom:12px">Surprise! Play a scene now</button>
     <div class="grid2" style="margin-bottom:12px"><button id="fpClock">Fireplace clock: off</button><span></span></div>
     <div class="list" id="themes"></div>
+    <h3>Holiday loop</h3>
+    <p class="small">Pick the holidays to cycle through, then start the loop.</p>
+    <div class="grid2" id="loopList" style="margin-bottom:12px"></div>
+    <div class="grid3" style="margin-bottom:8px">
+      <button data-lsecs="30">30 sec</button><button data-lsecs="60">1 min</button><button data-lsecs="300">5 min</button>
+    </div>
+    <button class="primary" id="loopGo">Start holiday loop</button>
     <h3>Birthday</h3>
     <div class="row"><input type="text" id="bdName" placeholder="Name" maxlength="12"><input type="date" id="bdDate"></div>
     <button id="bdSave">Save birthday</button>
@@ -196,13 +203,13 @@
 </main>
 
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=7';
-import { LedCanvas } from '../js/led-canvas.js?v=7';
-import { startData, TEAMS } from '../js/data.js?v=7';
-import { THEMES } from '../js/modes-holiday.js?v=7';
-import { FUN } from '../js/modes-fun.js?v=7';
-import { STATES } from '../js/usmap-data.js?v=7';
-import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=7';
+import { render, Frame } from '../js/renderer.js?v=9';
+import { LedCanvas } from '../js/led-canvas.js?v=9';
+import { startData, TEAMS } from '../js/data.js?v=9';
+import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=9';
+import { FUN } from '../js/modes-fun.js?v=9';
+import { STATES } from '../js/usmap-data.js?v=9';
+import { wallId, newWallId, setState, watchState, watchConnection } from '../js/wall.js?v=9';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -300,8 +307,6 @@ function start() {
   $$('[data-mapview]').forEach(b => b.onclick = () => set({ mode: 'map', map: { view: b.dataset.mapview } }));
   STATES.filter(s => s.abbr !== 'DC').sort((a, b) => a.abbr.localeCompare(b.abbr)).forEach(s => {
     $('#states').appendChild(btn(s.abbr, { st: s.abbr }, () => {
-      $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
-    $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
     const v = new Set(state.visited || []);
       v.has(s.abbr) ? v.delete(s.abbr) : v.add(s.abbr);
       set({ mode: 'map', map: { view: 'visited' }, visited: [...v] });
@@ -310,6 +315,19 @@ function start() {
 
   // ----- holidays -----
   THEMES.forEach(([key, label]) => $('#themes').appendChild(btn(label, { theme: key }, () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: key } }))));
+  let loopDraft = null, loopSecs = 60;
+  THEMES.filter(([k]) => !['auto', 'loop', 'birthday', 'team'].includes(k)).forEach(([key, label]) => $('#loopList').appendChild(btn(label, { loop: key }, () => {
+    const cur = new Set(loopDraft || state.holiday?.loop || LOOP_DEFAULT);
+    cur.has(key) ? cur.delete(key) : cur.add(key);
+    loopDraft = THEMES.map(r => r[0]).filter(k => cur.has(k));
+    paint();
+  })));
+  $$('[data-lsecs]').forEach(b => b.onclick = () => { loopSecs = Number(b.dataset.lsecs); paint(); });
+  $('#loopGo').onclick = () => {
+    const loop = loopDraft || state.holiday?.loop || LOOP_DEFAULT;
+    if (!loop.length) return;
+    set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: 'loop', loop, loopSeconds: loopSecs } });
+  };
   $('#fpClock').onclick = () => set({ fireplace: { clock: !state.fireplace?.clock } });
   $('#bdSave').onclick = () => {
     if (!$('#bdDate').value) return;
@@ -363,6 +381,11 @@ function start() {
     const rot = new Set(rotDraft || state.rotate?.modes || ['clock', 'weather', 'scoreboard', 'holiday', 'calendar']);
     $$('[data-rot]').forEach(b => b.classList.toggle('on', rot.has(b.dataset.rot)));
     $$('[data-secs]').forEach(b => b.classList.toggle('on', Number(b.dataset.secs) === rotSecs));
+    const lp = new Set(loopDraft || state.holiday?.loop || LOOP_DEFAULT);
+    $$('[data-loop]').forEach(b => b.classList.toggle('on', lp.has(b.dataset.loop)));
+    $$('[data-lsecs]').forEach(b => b.classList.toggle('on', Number(b.dataset.lsecs) === loopSecs));
+    $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
+    $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
     const d = state.display || {};
     $$('[data-frame]').forEach(b => b.classList.toggle('on', b.dataset.frame === (d.frame || 'bezel')));
     $$('[data-dots]').forEach(b => b.classList.toggle('on', b.dataset.dots === (d.dots || 'round')));
