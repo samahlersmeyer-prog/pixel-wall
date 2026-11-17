@@ -48,7 +48,35 @@ function sim(f, t, flare) {
   return s;
 }
 
-const STOCKING = ['WWWWWW.', 'WWWWWW.', '.CCCCC.', '.CCCCC.', '.CCCCC.', '.CCCCC.', '.CCCCCC', '.CCCCCCC', '..CCCCCC', '...CCCC.'];
+// One stocking per family member: mom and dad first (a little longer), then the kids oldest to youngest.
+export const FAMILY = [
+  { name: 'Sam', letter: 'S', color: [200, 30, 40], big: true },
+  { name: 'Emily', letter: 'E', color: [150, 50, 170], big: true },
+  { name: 'Max', letter: 'M', color: [40, 90, 210] },
+  { name: 'Theo', letter: 'T', color: [30, 140, 60] },
+  { name: 'Junie', letter: 'J', color: [235, 90, 160] },
+  { name: 'Louie', letter: 'L', color: [240, 140, 30] },
+  { name: 'Josie', letter: 'J', color: [70, 190, 205] },
+];
+const STOCK_X = [15, 30, 45, 60, 75, 90, 105];
+const TINY = {
+  S: ['###', '#..', '###', '..#', '###'], E: ['###', '#..', '##.', '#..', '###'], M: ['#.#', '###', '###', '#.#', '#.#'],
+  T: ['###', '.#.', '.#.', '.#.', '.#.'], J: ['..#', '..#', '..#', '#.#', '###'], L: ['#..', '#..', '#..', '#..', '###'],
+  A: ['.#.', '#.#', '###', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'], C: ['###', '#..', '#..', '#..', '###'],
+  D: ['##.', '#.#', '#.#', '#.#', '##.'], G: ['###', '#..', '#.#', '#.#', '###'], H: ['#.#', '#.#', '###', '#.#', '#.#'],
+  K: ['#.#', '##.', '#..', '##.', '#.#'], N: ['###', '#.#', '#.#', '#.#', '#.#'], O: ['###', '#.#', '#.#', '#.#', '###'],
+  P: ['###', '#.#', '###', '#..', '#..'], R: ['##.', '#.#', '##.', '#.#', '#.#'], W: ['#.#', '#.#', '###', '###', '#.#'],
+};
+function stocking(f, x, y, m) {
+  f.rect(x, y, 8, 7, [240, 240, 240]);                          // cuff
+  const g = TINY[(m.letter || m.name?.[0] || '').toUpperCase()];
+  if (g) f.sprite(g, x + 3, y + 1, { '#': m.color });
+  const len = m.big ? 9 : 7;
+  f.rect(x + 1, y + 7, 6, len, m.color);                         // leg
+  f.rect(x + 2, y + 7 + len, 6, 2, m.color);                     // foot
+  f.rect(x + 7, y + 6 + len, 1, 2, m.color);
+  f.rect(x + 3, y + 9 + len, 4, 1, m.color.map(v => v * 0.7));  // toe shading
+}
 const DOG = [
   ['..........BB..', '.........BBBB.', '........BBBKBn', 'BBBBBBBBBBBB..', 'BBBBBBBBBBB...', 'tBBBBBBBBBB...', '.B..B....B..B.', '.B..B....B..B.'],
   ['..........BB..', '.........BBBB.', '........BBBKBn', 'BBBBBBBBBBBB..', 'BBBBBBBBBBB...', 'tBBBBBBBBBB...', '..B..B..B..B..', '..B..B..B..B..'],
@@ -96,7 +124,7 @@ function cocoa(f, lt, p) {
 function candyCane(f, lt, p, k) {
   const rise = ease(seg(p, 0.1, 0.35)) - ease(seg(p, 0.75, 0.95));
   if (rise <= 0) return;
-  const sx = [36, 61, 86][k % 3] + 3, top = 13 - Math.round(rise * 7);
+  const sx = STOCK_X[k % STOCK_X.length] + 4, top = 13 - Math.round(rise * 7);
   for (let i = 0; i < 9; i++) f.set(sx, top + i, i % 2 ? [255, 255, 255] : [230, 30, 30]);
   f.set(sx + 1, top - 1, [255, 255, 255]); f.set(sx + 2, top, [230, 30, 30]); f.set(sx + 2, top + 1, [255, 255, 255]);
 }
@@ -165,11 +193,11 @@ export function drawFireplace(f, st, data, t, now) {
     f.rect(cx, 3, 2, 5, [240, 235, 220]);
     f.set(cx, 2 - (Math.floor(t / 180 + cx) % 2), [255, 200, 60]);
   }
-  // Stockings.
-  const sc = [[200, 30, 40], [30, 140, 60], [40, 90, 200]];
-  [36, 61, 86].forEach((x, i) => {
-    const jig = scene && scene.sc[0] === candyCane && scene.k % 3 === i && scene.lt < 2500 ? Math.round(Math.sin(scene.lt / 60)) : 0;
-    f.sprite(STOCKING, x + jig, 13, { W: [240, 240, 240], C: sc[i] });
+  // Stockings: mom, dad and the five kids.
+  const fam = st.fireplace?.stockings || FAMILY;
+  fam.slice(0, 7).forEach((m, i) => {
+    const jig = scene && scene.sc[0] === candyCane && scene.k % STOCK_X.length === i && scene.lt < 2500 ? Math.round(Math.sin(scene.lt / 60)) : 0;
+    stocking(f, STOCK_X[i] + jig, 13, m);
   });
   // Rising embers.
   for (let i = 0; i < 6; i++) {
