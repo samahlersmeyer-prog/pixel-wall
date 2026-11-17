@@ -65,6 +65,10 @@ async function open(id) {
   const t = id ? tiles.find(x => x.id === id) : tiles[sel];
   const toast = document.getElementById('toast');
   toast.textContent = `Opening ${t.name}...`; toast.style.display = 'flex';
+  if (demo) {  // on a regular computer there's no Pi launcher: just go to the page
+    if (!t.url) { toast.textContent = `${t.name} only runs on the Pi`; setTimeout(() => { busy = false; toast.style.display = 'none'; }, 2000); return; }
+    location.href = t.url; return;
+  }
   try { await fetch('/open?id=' + encodeURIComponent(t.id)); } catch {}
   setTimeout(() => { busy = false; toast.style.display = 'none'; }, 8000);
 }
@@ -106,17 +110,21 @@ requestAnimationFrame(poll);
 // Nobody using the menu for a while? Go back to the wall.
 setInterval(() => { if (!busy && Date.now() - lastInput > idleMs) open(idleTile); }, 15000);
 
-const DEMO = { idleMinutes: 99, games: 12, tiles: [
-  { id: 'wall', name: 'Pixel Wall', icon: '🧱' }, { id: 'bigdawg', name: 'Big Dawg Daily', icon: '🐶' },
-  { id: 'games', name: 'Retro Games', icon: '🎮', type: 'games' }, { id: 'junglejam', name: 'Jungle Jam', icon: '🦁' },
-  { id: 'glam', name: 'Glam Studio', icon: '💅' }, { id: 'frontoffice', name: 'Front Office', icon: '⚾' },
-  { id: 'calendar', name: 'Family Calendar', icon: '📅' }] };
+// The same menu on a regular computer (…/pi/menu/?demo): tiles just open their pages here.
+const wallKey = (location.hash.match(/w=([A-Za-z0-9_-]{12,})/) || [])[1] || localStorage.getItem('pixelWallId') || '';
+if (wallKey) localStorage.setItem('pixelWallId', wallKey);
+const GH = 'https://samahlersmeyer-prog.github.io/';
+const DEMO = { idleMinutes: 99, games: 0, tiles: [
+  { id: 'wall', name: 'Pixel Wall', icon: '🧱', url: '../../display/#w=' + wallKey }, { id: 'bigdawg', name: 'Big Dawg Daily', icon: '🐶', url: GH + 'bigdawg/' },
+  { id: 'games', name: 'Retro Games', icon: '🎮', type: 'games' }, { id: 'junglejam', name: 'Jungle Jam', icon: '🦁', url: GH + 'jungle-jam-player/' },
+  { id: 'glam', name: 'Glam Studio', icon: '💅', url: GH + 'glam-studio/' }, { id: 'frontoffice', name: 'Front Office', icon: '⚾', url: GH + 'front-office/' },
+  { id: 'calendar', name: 'Family Calendar', icon: '📅', url: GH + 'family-calendar/' }] };
 const demo = location.search.includes('demo');
 if (demo) window.fetch = (u => async x => x.startsWith('/open') ? new Response('{}') : u(x))(window.fetch);
 (demo ? Promise.resolve(DEMO) : fetch('/config').then(r => r.json())).then(c => {
   tiles = c.tiles; idleMs = (c.idleMinutes || 5) * 60000; idleTile = c.idleTile || 'wall';
   const g = tiles.find(t => t.type === 'games');
-  if (g) g.sub = c.games ? `${c.games} games` : 'add games to ~/roms';
+  if (g) g.sub = demo ? 'on the Pi' : c.games ? `${c.games} games` : 'add games to ~/roms';
   draw();
 });
 </script>

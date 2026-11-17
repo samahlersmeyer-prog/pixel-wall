@@ -6,10 +6,10 @@
 //   A (Enter)                           surprise scene (holidays) / next option
 //   LB / RB  ( - / + )                  dimmer / brighter
 //   Y (H)                               show / hide the button guide
-//   Select + Start                      back to the Pi home menu (handled by the Pi launcher)
-import { THEMES } from './modes-holiday.js?v=10';
-import { TEAMS } from './data.js?v=10';
-import { FUN } from './modes-fun.js?v=10';
+//   Select + Start / Esc / Home         home menu
+import { THEMES } from './modes-holiday.js?v=11';
+import { TEAMS } from './data.js?v=11';
+import { FUN } from './modes-fun.js?v=11';
 
 const SCREENS = [
   ['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],
@@ -48,6 +48,11 @@ export function startRemote({ getState, setState, toast }) {
 
   const DO = { left: () => screen(-1), right: () => screen(1), up: () => option(-1), down: () => option(1), a: action, lb: () => bright(-10), rb: () => bright(10), y: help };
 
+  // Esc / Home = home menu. On the Pi the launcher catches the key itself; on a regular computer
+  // this opens the same menu as a web page.
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' || e.key === 'Home') { e.preventDefault(); location.href = '../pi/menu/?demo' + location.hash; }
+  });
   addEventListener('keydown', e => {
     const k = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'a', ' ': 'a', '-': 'lb', '=': 'rb', '+': 'rb', h: 'y', H: 'y' }[e.key];
     if (k) { e.preventDefault(); DO[k](); }
@@ -60,7 +65,8 @@ export function startRemote({ getState, setState, toast }) {
   function poll() {
     for (const p of navigator.getGamepads?.() || []) {
       if (!p) continue;
-      const combo = p.buttons[8]?.pressed && p.buttons[9]?.pressed; // leave Select+Start to the launcher
+      const combo = p.buttons[8]?.pressed && p.buttons[9]?.pressed; // Select+Start = home menu
+      if (combo) { location.href = '../pi/menu/?demo' + location.hash; return; }
       const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
       const on = {};
       for (const [i, name] of Object.entries(MAP)) if (p.buttons[i]?.pressed) on[name] = true;
