@@ -177,7 +177,7 @@ export function startData(getState, onData) {
     }
     if (st.mode === 'map' && (st.map?.view || 'weather') === 'weather' && stale('map', 20 * 60 * 1000)) {
       stamps.map = Date.now();
-      const { STATES } = await import('./usmap-data.js');
+      const { STATES } = await import('./usmap-data.js?v=4');
       const temps = await fetchMapWeather(STATES);
       if (temps) { data.mapWeather = temps; onData(data); } else stamps.map = 0;
     }

@@ -1,6 +1,6 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma.
-import { hsv, W, H } from './renderer.js';
-import { fireworks } from './modes-holiday.js';
+import { hsv, W, H } from './renderer.js?v=4';
+import { fireworks } from './modes-holiday.js?v=4';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};

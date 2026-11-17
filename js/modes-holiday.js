@@ -1,6 +1,6 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js';
-import { holidaySurprise } from './holiday-events.js';
+import { hsv, W, H } from './renderer.js?v=4';
+import { holidaySurprise } from './holiday-events.js?v=4';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
