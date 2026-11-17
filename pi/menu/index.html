@@ -117,7 +117,8 @@ const wallKey = (location.hash.match(/w=([A-Za-z0-9_-]{12,})/) || [])[1] || loca
 if (wallKey) localStorage.setItem('pixelWallId', wallKey);
 const GH = 'https://samahlersmeyer-prog.github.io/';
 const DEMO = { idleMinutes: 99, games: 0, tiles: [
-  { id: 'wall', name: 'Pixel Wall', icon: '🧱', url: '../../display/#w=' + wallKey }, { id: 'bigdawg', name: 'Big Dawg Daily', icon: '🐶', url: GH + 'bigdawg/' },
+  { id: 'wall', name: 'Pixel Wall', icon: '🧱', url: '../../display/#w=' + wallKey }, { id: 'arcade', name: 'Dawg Arcade', icon: '🕹️', url: GH + 'dawg-arcade/' },
+  { id: 'bigdawg', name: 'Big Dawg Daily', icon: '🐶', url: GH + 'bigdawg/' },
   { id: 'games', name: 'Retro Games', icon: '🎮', type: 'games' }, { id: 'junglejam', name: 'Jungle Jam', icon: '🦁', url: GH + 'jungle-jam-player/' },
   { id: 'glam', name: 'Glam Studio', icon: '💅', url: GH + 'glam-studio/' }, { id: 'frontoffice', name: 'Front Office', icon: '⚾', url: GH + 'front-office/' },
   { id: 'calendar', name: 'Family Calendar', icon: '📅', url: GH + 'family-calendar/' }] };
