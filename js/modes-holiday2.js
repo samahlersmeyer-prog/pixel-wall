@@ -2,8 +2,8 @@
 // Ascension, Pentecost, Reformation, All Saints) and national holidays
 // (MLK Day, Presidents' Day, Memorial Day, Labor Day, Columbus Day, Veterans Day).
 // Each has a base screen plus 3 surprise scenes. Solemn days use gentle scenes.
-import { W, H, hsv } from './renderer.js?v=22';
-import { fireworks } from './modes-holiday.js?v=22';
+import { W, H, hsv } from './renderer.js?v=23';
+import { fireworks } from './modes-holiday.js?v=23';
 
 const rnd = n => { const x = Math.sin(n * 63.731) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
