@@ -5,9 +5,9 @@
 // of a stocking, a log pops and sends up sparks, or a stocking catches a spark
 // and an elf runs in to put it out).
 // Every other minute Santa visits: candy cane in one stocking, then a present
-// wrapped in that stocking's color goes under the tree. The pile grows until
-// all seven have one, then starts over.
-import { W, H } from './renderer.js?v=24';
+// wrapped in that stocking's color goes under the tree. When all seven have
+// one, the whole family comes in, opens them and walks off.
+import { W, H } from './renderer.js?v=25';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -203,7 +203,8 @@ const SANTA_P = { W: [245, 245, 245], R: [210, 30, 35], S: [255, 205, 170], K: [
 
 // Santa strolls in carrying a present, tucks a candy cane into one stocking (picked like names from a hat),
 // then sets the present (wrapped in that stocking's color) under the tree and heads out.
-function santaVisit(f, lt, p, k, fam, pileLen) {
+function santaVisit(f, lt, p, k, fam, pileList) {
+  const pileLen = pileList.length;
   const i = santaPick(k), m = fam[i] || FAMILY[i];
   const atStock = STOCK_X[i] - 9;
   const [px, py] = SLOTS[Math.min(pileLen, SLOTS.length - 1)];
@@ -295,6 +296,83 @@ function stockingFire(f, lt, p, k, fam) {
   }
 }
 
+
+// ---------- Christmas morning: the family opens the presents ----------
+// Once all seven presents are under the tree, the whole family walks in and lines up,
+// each one gets their present (youngest first), tears it open, celebrates, and everyone walks off.
+const PEOPLE = [   // height, hair color, long hair — same order as FAMILY (Sam, Emily, Max, Theo, Junie, Louie, Josie)
+  { h: 19, hair: [70, 45, 25] }, { h: 17, hair: [110, 70, 35], long: true }, { h: 16, hair: [90, 60, 30] },
+  { h: 14, hair: [100, 65, 30] }, { h: 12, hair: [120, 80, 40], long: true }, { h: 11, hair: [110, 75, 35] },
+  { h: 10, hair: [130, 90, 45], long: true },
+];
+const SKIN = [255, 205, 170], PANTS = [50, 60, 110], SHOE = [35, 25, 20];
+const TOYS = [[255, 60, 60], [80, 200, 255], [255, 220, 60], [140, 255, 120], [230, 120, 255], [255, 255, 255], [255, 150, 40]];
+const LINE_X = j => 10 + j * 13;
+const FAM_DUR = 40000;
+
+// A little person, feet on y = 62. step: 0/1 walking frame; up: arms raised.
+function person(f, x, y, who, shirt, step, up) {
+  const head = who.h > 12 ? 4 : 3, body = Math.round((who.h - head - 2) * 0.5), legs = who.h - head - 2 - body;
+  let yy = y - who.h + 1;
+  f.rect(x + 1, yy, 4, 1, who.hair); yy++;                                   // hair
+  f.rect(x + 1, yy, 4, head, SKIN);
+  f.set(x + 2, yy + 1, [30, 20, 20]); f.set(x + 4, yy + 1, [30, 20, 20]);     // eyes
+  if (who.long) { f.rect(x, yy, 1, head + 1, who.hair); f.rect(x + 5, yy, 1, head + 1, who.hair); }
+  const sy = yy + head;
+  f.rect(x + 1, sy, 4, body, shirt);                                         // shirt
+  if (up) { f.rect(x, sy - 3, 1, 3, shirt); f.rect(x + 5, sy - 3, 1, 3, shirt); f.set(x, sy - 4, SKIN); f.set(x + 5, sy - 4, SKIN); }
+  else { f.rect(x, sy, 1, body, shirt); f.rect(x + 5, sy, 1, body, shirt); f.set(x, sy + body, SKIN); f.set(x + 5, sy + body, SKIN); }
+  const ly = sy + body, a = step ? 1 : 0;
+  f.rect(x + 1 - a, ly, 2, legs, PANTS); f.rect(x + 3 + a, ly, 2, legs, PANTS);  // legs
+  f.rect(x + 1 - a, ly + legs, 2, 1, SHOE); f.rect(x + 3 + a, ly + legs, 2, 1, SHOE);
+}
+
+function familyOpen(f, lt, p, k, fam, pileList) {
+  const walkIn = ease(seg(p, 0, 0.15)), walkOut = ease(seg(p, 0.82, 1));
+  const order = [6, 5, 4, 3, 2, 1, 0];                                       // youngest first
+  const T0 = 0.16, TW = 0.64 / 7;
+  // presents still waiting under the tree
+  pileList.forEach((s, slot) => {
+    const turn = order.indexOf(s);
+    if ((p - T0 - turn * TW) / TW < 0) present(f, SLOTS[slot][0], SLOTS[slot][1], fam[s] || FAMILY[s]);
+  });
+  for (let j = 0; j < 7; j++) {
+    const who = PEOPLE[j], m = fam[j] || FAMILY[j], turn = order.indexOf(j);
+    const u = (p - T0 - turn * TW) / TW;                                     // this person's turn, 0..1
+    const walking = p < 0.15 || p > 0.82;
+    let x = LINE_X(j) - 112 * (1 - walkIn) + 140 * walkOut;
+    const hop = u > 0.55 && u < 1.6 && Math.floor(lt / 200 + j) % 2 ? 2 : 0;
+    const y = 62 - hop;
+    const cheer = u > 0.55 && p < 0.82;
+    person(f, Math.round(x), y, who, m.color, walking ? Math.floor(lt / 170 + j) % 2 : 0, cheer);
+    const cx = Math.round(x), chest = y - who.h + (who.h > 12 ? 9 : 7);
+    const slot = pileList.indexOf(j);
+    if (slot >= 0 && u >= 0 && u < 0.55) {
+      // the present hops over from the tree into their hands, then shakes before it gets torn open
+      const q = ease(seg(u, 0, 0.35)), [sx, sy] = SLOTS[slot];
+      const gx = sx + (cx + 1 - sx) * q, gy = sy + (chest - sy) * q - Math.sin(q * Math.PI) * 10;
+      const shake = u > 0.35 ? Math.round(Math.sin(lt / 40)) : 0;
+      present(f, Math.round(gx) + shake, Math.round(gy), m);
+    }
+    if (slot >= 0 && u >= 0.55 && u < 1.5) {
+      // wrapping paper flies everywhere
+      const b = (u - 0.55) / 0.95, lum = m.color[0] * 0.3 + m.color[1] * 0.59 + m.color[2] * 0.11;
+      const rib = lum > 150 ? [210, 30, 40] : [255, 215, 60];
+      for (let n = 0; n < 12; n++) {
+        const ang = rnd(n + j * 17) * Math.PI * 2, sp = 6 + rnd(n * 3 + j) * 10;
+        const px = cx + 3 + Math.cos(ang) * sp * b, py = chest + Math.sin(ang) * sp * b * 0.7 + b * b * 10;
+        f.set(Math.round(px), Math.round(py), (n % 3 ? m.color : rib).map(v => v * (1 - b * 0.7)));
+      }
+    }
+    if (slot >= 0 && u >= 0.55) {
+      // what they got, held up high (and carried off when they leave)
+      const toy = TOYS[(j + Math.floor(k / 2)) % TOYS.length], top = y - who.h - 3;
+      f.rect(cx + 2, top, 2, 2, toy);
+    }
+  }
+  if (p > 0.2 && p < 0.8) f.center('MERRY CHRISTMAS', 34, [255, 255, 255].map(v => v * (0.75 + 0.25 * Math.sin(lt / 250))));
+}
+
 const SCENES = [[dogNap, 22000], [santaVisit, 24000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000], [stockingFire, 18000]];
 const EVERY = 60000, START = 20000;
 
@@ -319,7 +397,8 @@ function activeScene(t, data) {
   // Santa comes every other scene (about every 2 minutes, starting 20 seconds in);
   // the other chill scenes take turns in between, shuffled so each plays before any repeats.
   let sc;
-  if (c % 2 === 0) sc = SCENES[1];
+  if (c % 2 === 1 && ((c + 1) / 2) % 7 === 0) sc = [familyOpen, FAM_DUR];   // all 7 presents are out: Christmas morning
+  else if (c % 2 === 0) sc = SCENES[1];
   else {
     const others = SCENES.filter((_, i) => i !== 1), m = others.length, j = (c - 1) / 2, round = Math.floor(j / m);
     const order = others.map((_, i) => i).sort((a, b) => rnd(round * 7 + a * 3.3) - rnd(round * 7 + b * 3.3));
@@ -330,7 +409,7 @@ function activeScene(t, data) {
 }
 
 // The presents already under the tree from Santa's timed visits this round (not counting a visit in progress).
-// When all seven have one, they stay for a minute, fade out, and the next round starts fresh.
+// When all seven have one, the family comes in the next minute and opens them, and the next round starts fresh.
 function pile(t, scene) {
   const c = Math.floor((t - START) / EVERY);
   if (c < 0) return { list: [], fade: 1 };
@@ -342,8 +421,8 @@ function pile(t, scene) {
   const list = [];
   for (let v = start; v < n; v++) list.push(santaPick(v * 2));
   const off = t - START - c * EVERY;
-  const fade = list.length === 7 && !inVisit ? 1 - seg(off, EVERY - 5000, EVERY) : 1;
-  return { list, fade };
+  if (list.length === 7 && !inVisit && off >= FAM_DUR) return { list: [], fade: 1 };   // opened and carried off
+  return { list, fade: 1 };
 }
 
 export function drawFireplace(f, st, data, t, now) {
@@ -387,7 +466,7 @@ export function drawFireplace(f, st, data, t, now) {
   const fam = st.fireplace?.stockings || FAMILY;
   tree(f, t);
   const presents = pile(t, scene);
-  presents.list.forEach((s, j) => present(f, SLOTS[j][0], SLOTS[j][1], fam[s] || FAMILY[s], presents.fade));
+  if (!(scene && scene.sc[0] === familyOpen)) presents.list.forEach((s, j) => present(f, SLOTS[j][0], SLOTS[j][1], fam[s] || FAMILY[s], presents.fade));
   // Stockings: mom, dad and the five kids.
   fam.slice(0, 7).forEach((m, i) => {
     const jig = scene && scene.sc[0] === candyCane && scene.k % STOCK_X.length === i && scene.lt < 2500 ? Math.round(Math.sin(scene.lt / 60)) : 0;
@@ -398,7 +477,7 @@ export function drawFireplace(f, st, data, t, now) {
     const q = ((t / 2600) + rnd(i)) % 1;
     f.set(OX + 20 + rnd(i + 2) * 36 + Math.sin(q * 6 + i) * 2, OY + FH - 8 - q * 26, [255, 150, 40].map(v => v * (1 - q)));
   }
-  if (scene) scene.sc[0](f, scene.lt, scene.lt / scene.sc[1], scene.k, fam, presents.list.length);
+  if (scene) scene.sc[0](f, scene.lt, scene.lt / scene.sc[1], scene.k, fam, presents.list);
   if (st.fireplace?.clock) {
     let hh = now.getHours() % 12 || 12;
     f.center(`${hh}:${String(now.getMinutes()).padStart(2, '0')}`, 0, [255, 220, 170]);
