@@ -30,18 +30,32 @@
 <div id="toast"></div>
 <div id="dot" title="connection"></div>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=12';
-import { LedCanvas } from '../js/led-canvas.js?v=12';
-import { startData } from '../js/data.js?v=12';
-import { wallId, watchState, setState, watchConnection } from '../js/wall.js?v=12';
-import { startRemote } from '../js/remote.js?v=12';
+import { render, Frame } from '../js/renderer.js?v=13';
+import { LedCanvas } from '../js/led-canvas.js?v=13';
+import { startData } from '../js/data.js?v=13';
+import { wallId, watchState, setState, watchConnection, newPairCode, pairId } from '../js/wall.js?v=13';
+import { startRemote } from '../js/remote.js?v=13';
 
 const id = wallId();
 const msg = document.getElementById('msg');
 if (!id) {
+  // No wall key yet (e.g. an Echo Show or a new TV): show a short code to type into the phone controller.
+  const code = sessionStorage.getItem('pixelPairCode') || newPairCode();
+  sessionStorage.setItem('pixelPairCode', code);
   msg.style.display = 'flex';
-  msg.textContent = 'Open this page with your wall link (it ends in #w=...). Make one from the phone controller.';
-  throw new Error('no wall id');
+  msg.innerHTML = `<div style="text-align:center;line-height:1.5"><div style="font-size:3vw;opacity:.8">Link this screen to your Pixel Wall</div>
+    <div style="font:700 11vw/1.2 ui-monospace,monospace;letter-spacing:.15em;color:#ffd36b;margin:2vh 0">${code}</div>
+    <div style="font-size:2.4vw;opacity:.75">On your phone: open the Pixel Wall controller → <b>Links</b> → <b>Link a screen</b> → type this code.</div></div>`;
+  watchState(pairId(code), st => {
+    if (st && st.linkTo && /^[A-Za-z0-9_-]{12,}$/.test(st.linkTo)) {
+      localStorage.setItem('pixelWallId', st.linkTo);
+      setState(pairId(code), { linkTo: null, linked: true });
+      sessionStorage.removeItem('pixelPairCode');
+      location.replace(location.pathname + location.search + '#w=' + st.linkTo);
+      location.reload();
+    }
+  });
+  throw new Error('waiting to be linked');
 }
 
 const led = new LedCanvas(document.getElementById('screen'));

@@ -1,7 +1,7 @@
 // Firebase connection shared by the TV display and the phone controller.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=12';
+import { firebaseConfig } from './firebase-config.js?v=13';
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -31,3 +31,13 @@ export function setState(id, patch) {
 export function watchConnection(cb) {
   return onValue(ref(db, '.info/connected'), snap => cb(!!snap.val()));
 }
+
+// Linking a new screen without typing the long key: the screen shows a short code and waits on
+// walls/pair-<code>; the phone controller writes this wall's key there. (Uses the same walls/ path
+// the database already allows, so no new rules are needed.)
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export function newPairCode() {
+  const a = new Uint8Array(6); crypto.getRandomValues(a);
+  return [...a].map(n => CODE_CHARS[n % CODE_CHARS.length]).join('');
+}
+export const pairId = code => 'pair-' + String(code).toUpperCase().replace(/[^A-Z0-9]/g, '');
