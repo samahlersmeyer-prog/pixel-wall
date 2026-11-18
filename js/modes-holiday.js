@@ -1,8 +1,8 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js?v=13';
-import { holidaySurprise } from './holiday-events.js?v=13';
-import { drawFireplace } from './modes-fireplace.js?v=13';
-import { T2, THEMES2, DATES, advent1 } from './modes-holiday2.js?v=13';
+import { hsv, W, H } from './renderer.js?v=14';
+import { holidaySurprise } from './holiday-events.js?v=14';
+import { drawFireplace } from './modes-fireplace.js?v=14';
+import { T2, THEMES2, DATES, advent1 } from './modes-holiday2.js?v=14';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
