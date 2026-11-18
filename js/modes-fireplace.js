@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=19';
+import { W, H } from './renderer.js?v=20';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -150,7 +150,7 @@ const SANTA_P = { W: [245, 245, 245], R: [210, 30, 35], S: [255, 205, 170], K: [
 
 // Santa strolls in, tucks a candy cane into one stocking at random, and heads out.
 function santaVisit(f, lt, p, k) {
-  const i = Math.floor(rnd(k * 7.13 + 1) * 7);
+  const i = santaPick(k);
   const target = STOCK_X[i] - 9;
   let x;
   if (p < 0.3) x = -14 + ease(p / 0.3) * (target + 14);
@@ -170,6 +170,16 @@ function santaVisit(f, lt, p, k) {
 
 const SCENES = [[dogNap, 22000], [santaVisit, 16000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000]];
 const EVERY = 60000, START = 20000;
+
+// Which stocking gets the candy cane: like drawing names from a hat. Every 7 visits, each of the 7 stockings
+// gets exactly one cane in a shuffled order, and a new round never starts with the stocking that just got one.
+function santaPick(k) {
+  const v = Math.floor(k / 2);                     // Santa comes on every other scene
+  const order = r => { const o = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => rnd(r * 11 + a * 2.7) - rnd(r * 11 + b * 2.7)); return o; };
+  const round = Math.floor(v / 7), o = order(round);
+  if (round > 0 && o[0] === order(round - 1)[6]) o.push(o.shift());
+  return o[v % 7];
+}
 
 function activeScene(t, data) {
   const kick = data.kick;
