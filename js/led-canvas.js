@@ -1,6 +1,6 @@
 // Draws a 128x64 frame onto a canvas so it looks like a real LED panel:
 // round dots, dark "off" LEDs, and a seam down the middle where the two panels meet.
-import { W, H } from './renderer.js?v=16';
+import { W, H } from './renderer.js?v=17';
 
 export class LedCanvas {
   constructor(canvas, { seam = true } = {}) {

@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=16';
+import { W, H } from './renderer.js?v=17';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -50,13 +50,13 @@ function sim(f, t, flare) {
 
 // One stocking per family member: mom and dad first (a little longer), then the kids oldest to youngest.
 export const FAMILY = [
-  { name: 'Sam', letter: 'S', color: [200, 30, 40], big: true },
-  { name: 'Emily', letter: 'E', color: [150, 50, 170], big: true },
-  { name: 'Max', letter: 'M', color: [40, 90, 210] },
-  { name: 'Theo', letter: 'T', color: [30, 140, 60] },
-  { name: 'Junie', letter: 'J', color: [235, 90, 160] },
-  { name: 'Louie', letter: 'L', color: [240, 140, 30] },
-  { name: 'Josie', letter: 'J', color: [70, 190, 205] },
+  { name: 'Sam', letter: 'S', color: [120, 60, 200], big: true },      // purple (Sam's pick: no repeats)
+  { name: 'Emily', letter: 'E', color: [20, 105, 45], big: true },     // dark green
+  { name: 'Max', letter: 'M', color: [40, 100, 230] },                 // blue
+  { name: 'Theo', letter: 'T', color: [210, 30, 40] },                 // red
+  { name: 'Junie', letter: 'J', color: [250, 200, 40] },               // butterfly bush yellow
+  { name: 'Louie', letter: 'L', color: [0, 170, 160] },                // teal
+  { name: 'Josie', letter: 'J', color: [250, 110, 180] },              // pink
 ];
 const STOCK_X = [15, 30, 45, 60, 75, 90, 105];
 const TINY = {
@@ -70,7 +70,9 @@ const TINY = {
 function stocking(f, x, y, m) {
   f.rect(x, y, 8, 7, [240, 240, 240]);                          // cuff
   const g = TINY[(m.letter || m.name?.[0] || '').toUpperCase()];
-  if (g) f.sprite(g, x + 3, y + 1, { '#': m.color });
+  // light colors (like Junie's yellow) get a darker letter so it shows on the white cuff
+  const lum = m.color[0] * 0.3 + m.color[1] * 0.59 + m.color[2] * 0.11;
+  if (g) f.sprite(g, x + 3, y + 1, { '#': lum > 150 ? m.color.map(v => v * 0.65) : m.color });
   const len = m.big ? 9 : 7;
   f.rect(x + 1, y + 7, 6, len, m.color);                         // leg
   f.rect(x + 2, y + 7 + len, 6, 2, m.color);                     // foot

@@ -1,9 +1,9 @@
 // Surprise scenes that play every so often on each holiday theme
 // (Santa flies by, a snowman gets built, a ghost says BOO...).
 // Every scene is drawn from the time alone, so it looks the same on every screen.
-import { W, H, hsv, Frame } from './renderer.js?v=16';
-import { fireworks } from './modes-holiday.js?v=16';
-import { EVENTS2, GENTLE } from './modes-holiday2.js?v=16';
+import { W, H, hsv, Frame } from './renderer.js?v=17';
+import { fireworks } from './modes-holiday.js?v=17';
+import { EVENTS2, GENTLE } from './modes-holiday2.js?v=17';
 
 const rnd = n => { const x = Math.sin(n * 78.233) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
