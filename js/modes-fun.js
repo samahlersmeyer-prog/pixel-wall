@@ -1,6 +1,6 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
-import { hsv, W, H } from './renderer.js?v=21';
-import { fireworks } from './modes-holiday.js?v=21';
+import { hsv, W, H } from './renderer.js?v=22';
+import { fireworks } from './modes-holiday.js?v=22';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
@@ -140,11 +140,12 @@ function bounce(f, t) {
   s.parts = s.parts.filter(p => p.l > 0 && p.y < H + 2);
   // the logo
   const col = s.party ? hsv((t / 400) % 1, 0.8, 1) : hsv(s.hue, 0.75, 1);
-  f.rect(x, y, BW, BH, col.map(v => v * 0.18));
-  f.rect(x, y, BW, 1, col); f.rect(x, y + BH - 1, BW, 1, col); f.rect(x, y, 1, BH, col); f.rect(x + BW - 1, y, 1, BH, col);
-  // a paw print in the middle of the square
-  const PAW = ['.#...#.', '##...##', '.#.#.#.', '...#...', '.#####.', '#######', '.#####.', '..###..'];
-  f.sprite(PAW, x + 5, y + 4, { '#': col });
+  // a solid, beveled square: bright edge on top/left, darker on bottom/right
+  f.rect(x, y, BW, BH, col.map(v => v * 0.75));
+  f.rect(x + 2, y + 2, BW - 4, BH - 4, col);
+  f.rect(x, y, BW, 1, col.map(v => Math.min(255, v * 1.3 + 40))); f.rect(x, y, 1, BH, col.map(v => Math.min(255, v * 1.3 + 40)));
+  f.rect(x, y + BH - 1, BW, 1, col.map(v => v * 0.45)); f.rect(x + BW - 1, y, 1, BH, col.map(v => v * 0.45));
+  f.rect(x + 3, y + 3, 3, 1, [255, 255, 255]); f.rect(x + 3, y + 3, 1, 3, [255, 255, 255]);   // little shine
   if (!s.party && dx < 6 && dy < 6) for (let k = 0; k < 3; k++) f.add(x + Math.random() * BW, y + Math.random() * BH, [40, 40, 40]);
   if (s.party) {
     const k = sinceParty;
