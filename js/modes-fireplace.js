@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=18';
+import { W, H } from './renderer.js?v=19';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -179,9 +179,15 @@ function activeScene(t, data) {
   }
   const c = Math.floor((t - START) / EVERY);
   if (c < 0) return null;
-  const n = SCENES.length, round = Math.floor(c / n);
-  const order = SCENES.map((_, i) => i).sort((a, b) => rnd(round * 7 + a * 3.3) - rnd(round * 7 + b * 3.3));
-  const sc = SCENES[order[c % n]];
+  // Santa comes every other scene (about every 2 minutes, starting 20 seconds in);
+  // the other chill scenes take turns in between, shuffled so each plays before any repeats.
+  let sc;
+  if (c % 2 === 0) sc = SCENES[1];
+  else {
+    const others = SCENES.filter((_, i) => i !== 1), m = others.length, j = (c - 1) / 2, round = Math.floor(j / m);
+    const order = others.map((_, i) => i).sort((a, b) => rnd(round * 7 + a * 3.3) - rnd(round * 7 + b * 3.3));
+    sc = others[order[j % m]];
+  }
   const off = t - START - c * EVERY;
   return off < sc[1] ? { sc, lt: off, k: c } : null;
 }
