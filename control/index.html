@@ -51,7 +51,16 @@
 </style>
 </head>
 <body>
-<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v14</span></h1><button id="linksBtn" style="padding:8px 12px;font-size:13px">Links</button></header>
+<header><h1>Pixel Wall<span id="dot"></span> <span class="small" style="font-weight:400">v15</span></h1><button id="linksBtn" style="padding:10px 14px;font-size:14px">Links</button></header>
+  <section class="card links hidden" id="links">
+    <h2>Links</h2>
+    <div class="small">TV display</div><input id="tvLink" readonly>
+    <div class="small">Phone controller</div><input id="phoneLink" readonly>
+    <h3 style="margin-top:14px">Link a screen</h3>
+    <div class="small">Open <b>samahlersmeyer-prog.github.io/pixel-wall/display</b> on the new screen (Echo Show, TV, laptop). It shows a 6-letter code; type it here.</div>
+    <div style="display:flex;gap:8px;margin-top:6px"><input id="pairCode" placeholder="CODE" maxlength="8" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"><button id="pairGo" class="primary" style="white-space:nowrap">Link</button></div>
+    <div class="small" id="pairMsg"></div>
+  </section>
 
 <section id="setup" class="card hidden">
   <h2>Set up your wall</h2>
@@ -195,25 +204,16 @@
     <input type="range" id="bright" min="10" max="100" step="5">
   </section>
 
-  <section class="card links hidden" id="links">
-    <h2>Links</h2>
-    <div class="small">TV display</div><input id="tvLink" readonly>
-    <div class="small">Phone controller</div><input id="phoneLink" readonly>
-    <h3 style="margin-top:14px">Link a screen</h3>
-    <div class="small">Open <b>samahlersmeyer-prog.github.io/pixel-wall/display</b> on the new screen (Echo Show, TV, laptop). It shows a 6-letter code; type it here.</div>
-    <div style="display:flex;gap:8px;margin-top:6px"><input id="pairCode" placeholder="CODE" maxlength="8" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"><button id="pairGo" class="primary" style="white-space:nowrap">Link</button></div>
-    <div class="small" id="pairMsg"></div>
-  </section>
 </main>
 
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=14';
-import { LedCanvas } from '../js/led-canvas.js?v=14';
-import { startData, TEAMS } from '../js/data.js?v=14';
-import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=14';
-import { FUN } from '../js/modes-fun.js?v=14';
-import { STATES } from '../js/usmap-data.js?v=14';
-import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=14';
+import { render, Frame } from '../js/renderer.js?v=15';
+import { LedCanvas } from '../js/led-canvas.js?v=15';
+import { startData, TEAMS } from '../js/data.js?v=15';
+import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=15';
+import { FUN } from '../js/modes-fun.js?v=15';
+import { STATES } from '../js/usmap-data.js?v=15';
+import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=15';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -245,7 +245,12 @@ function start() {
   const base = location.href.split('/control/')[0];
   $('#tvLink').value = `${base}/display/#w=${id}`;
   $('#phoneLink').value = `${base}/control/#w=${id}`;
-  $('#linksBtn').onclick = () => $('#links').classList.toggle('hidden');
+  $('#linksBtn').onclick = () => {
+    const open = $('#links').classList.toggle('hidden') === false;
+    if (open) { $('#links').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  };
+  // ...#link opens the Links card right away (handy for linking a new screen)
+  if (location.search.includes('link')) { $('#links').classList.remove('hidden'); }
   $$('.links input[readonly]').forEach(i => i.onclick = () => i.select());
   $('#pairGo').onclick = async () => {
     const code = $('#pairCode').value.trim().toUpperCase();
