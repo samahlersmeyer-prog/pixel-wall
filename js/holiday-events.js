@@ -1,9 +1,9 @@
 // Surprise scenes that play every so often on each holiday theme
 // (Santa flies by, a snowman gets built, a ghost says BOO...).
 // Every scene is drawn from the time alone, so it looks the same on every screen.
-import { W, H, hsv, Frame } from './renderer.js?v=25';
-import { fireworks } from './modes-holiday.js?v=25';
-import { EVENTS2, GENTLE } from './modes-holiday2.js?v=25';
+import { W, H, hsv, Frame } from './renderer.js?v=27';
+import { fireworks } from './modes-holiday.js?v=27';
+import { EVENTS2, GENTLE } from './modes-holiday2.js?v=27';
 
 const rnd = n => { const x = Math.sin(n * 78.233) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -269,13 +269,38 @@ function witch(f, lt, p) {
 
 // ---------------- Thanksgiving ----------------
 const TURKEY = ['..ROYYYOR..', '.ROYYYYYOR.', 'ROY.BBB.YOR', 'RO.BBBBBW.R', '...BBBBBBr.', '...BBBBB.r.', '....BBBB...'];
+// A hunter in blaze orange runs after the turkey — and the turkey gets away.
+function hunter(f, x, y, step) {
+  const OR = [255, 100, 0], PANT = [95, 85, 45], BOOT = [35, 25, 20];
+  f.rect(x + 1, y - 18, 5, 2, OR); f.rect(x - 1, y - 17, 2, 1, OR);            // blaze orange cap + brim
+  f.rect(x + 1, y - 16, 4, 3, SKIN); f.set(x + 1, y - 15, BLACK_ISH);           // face
+  f.rect(x + 1, y - 13, 1, 1, [110, 70, 40]);                                    // beard
+  f.rect(x, y - 13, 6, 6, OR); f.rect(x + 2, y - 13, 1, 6, [200, 70, 0]);        // vest
+  f.line(x - 7, y - 11, x + 3, y - 11, [130, 130, 140]);                         // barrel
+  f.rect(x + 2, y - 11, 4, 2, [120, 70, 30]);                                    // stock
+  f.set(x - 1, y - 10, SKIN); f.set(x + 4, y - 9, SKIN);                         // hands
+  f.rect(x + 1, y - 7, 4, 2, PANT);
+  if (step) { f.rect(x, y - 5, 2, 4, PANT); f.rect(x + 4, y - 5, 2, 3, PANT); f.rect(x - 1, y - 1, 3, 1, BOOT); f.rect(x + 5, y - 2, 2, 1, BOOT); }
+  else { f.rect(x + 1, y - 5, 2, 4, PANT); f.rect(x + 3, y - 5, 2, 4, PANT); f.rect(x, y - 1, 3, 1, BOOT); f.rect(x + 3, y - 1, 3, 1, BOOT); }
+}
+
+const TURKEY_L = TURKEY.map(r => [...r].reverse().join(''));   // facing left, the way he's running
 function turkeyRun(f, lt, p) {
-  const x = W + 4 - p * (W + 40), step = Math.floor(lt / 120) % 2;
-  f.sprite(TURKEY, Math.round(x), 30, { R: [220, 40, 30], O: ORANGE, Y: GOLD, B: BROWN, W: WHITE, r: RED }, 2);
+  const x = W + 4 - p * (W + 90), step = Math.floor(lt / 120) % 2;
+  f.sprite(TURKEY_L, Math.round(x), 30, { R: [220, 40, 30], O: ORANGE, Y: GOLD, B: BROWN, W: WHITE, r: RED }, 2);
   const legY = 44;
   f.rect(Math.round(x) + 9 + step * 2, legY, 1, 5, GOLD); f.rect(Math.round(x) + 13 - step * 2, legY, 1, 5, GOLD);
+  // the hunter is a step slower, so he falls further behind
+  const hx = Math.round(W + 26 - p * (W + 60)), hs = Math.floor(lt / 150) % 2;
+  hunter(f, hx, 49, hs);
+  for (let i = 0; i < 4; i++) {                                                  // dust kicked up
+    const q = ((lt / 500) + i / 4) % 1;
+    f.set(hx + 7 + q * 6, 48 - q * 3, [170, 150, 120].map(v => v * (1 - q)));
+    f.set(Math.round(x) + 18 + q * 6, 48 - q * 3, [170, 150, 120].map(v => v * (1 - q)));
+  }
   f.center('GOBBLE GOBBLE!', 6, ORANGE, 1);
-  if (p > 0.3) f.center('RUN TURKEY RUN!', 56, WHITE, 1);
+  if (p > 0.25 && p < 0.8) f.center('RUN TURKEY RUN!', 56, WHITE, 1);
+  else if (p >= 0.8) f.center('HE GOT AWAY!', 56, GOLD, 1);
 }
 
 function pie(f, lt) {
@@ -286,6 +311,108 @@ function pie(f, lt) {
     f.set(x, y, [200, 200, 200].map(v => v * (1 - i / 12)));
   }
   f.center('PIE TIME!', 2, [255, 200, 80], 1);
+}
+
+
+// The big Thanksgiving parade: a drum major and marching band, a giant turkey balloon,
+// a cornucopia float, a giant football balloon, and Santa's sleigh float bringing up the rear
+// (the parade always ends with Santa — Christmas season starts now!).
+function bandie(f, x, y, kind, step, bob) {
+  y -= bob;
+  const leg = [245, 245, 245], jacket = kind === 'major' ? [255, 255, 255] : [200, 25, 35];
+  f.rect(x - 1, y - 2 + (step ? 1 : 0), 1, step ? 2 : 3, leg); f.rect(x + 1, y - 2 + (step ? 0 : 1), 1, step ? 3 : 2, leg);
+  f.rect(x - 1, y - 6, 3, 4, jacket); f.set(x, y - 3, GOLD);                    // jacket + belt buckle
+  f.rect(x - 1, y - 8, 3, 2, SKIN);
+  const hat = kind === 'major' ? 5 : 3;
+  f.rect(x - 1, y - 8 - hat, 3, hat, kind === 'major' ? [25, 25, 90] : BLACK_ISH);    // tall shako
+  f.set(x, y - 9 - hat, kind === 'major' ? GOLD : WHITE);                       // plume
+  if (kind === 'drum') { f.rect(x + 1, y - 6, 3, 3, WHITE); f.rect(x + 1, y - 6, 3, 1, RED); f.rect(x + 1, y - 4, 3, 1, RED); }
+  else if (kind === 'tuba') { for (let a = 0; a < 6.3; a += 0.5) f.set(x + 2 + Math.cos(a) * 2, y - 10 + Math.sin(a) * 2, GOLD); f.line(x + 1, y - 6, x + 1, y - 8, GOLD); }
+  else if (kind === 'horn') { f.line(x + 1, y - 7, x + 4, y - 8, GOLD); f.rect(x + 4, y - 9, 1, 3, GOLD); }
+}
+
+function giantBalloon(f, x, y, draw, ropes, lt, coat) {
+  draw(x, y);
+  ropes.forEach(([rx, ry, hx], i) => {
+    f.line(x + rx, y + ry, x + hx, 49, [180, 180, 180]);
+    kid(f, x + hx, 57, coat, coat.map(v => v * 0.7), 1);
+  });
+}
+
+function parade(f, lt, p) {
+  // its own crisp November sky, then the street, curb and cheering crowd
+  for (let y = 0; y < 47; y++) f.rect(0, y, W, 1, [20 + y * 1.2, 40 + y * 1.5, 90 + y * 1.2]);
+  f.rect(0, 47, W, 12, [60, 60, 66]);
+  for (let x = 0; x < W; x += 8) f.rect(x, 52, 4, 1, [200, 180, 60].map(v => v * 0.6));
+  f.rect(0, 46, W, 1, [140, 140, 150]);
+  const L = 300, lead = -6 + p * (W + L + 10);
+  const step = Math.floor(lt / 260) % 2, beat = Math.floor(lt / 520) % 2;
+
+  // drum major + band (offset 0..48)
+  const band = ['major', 'drum', 'horn', 'tuba', 'drum', 'horn', 'tuba', 'drum'];
+  band.forEach((k, i) => {
+    const x = Math.round(lead - i * 7);
+    if (x > -6 && x < W + 6) bandie(f, x, 57, k, (step + i) % 2, (beat + i) % 2 && k !== 'major' ? 1 : 0);
+  });
+  const mx = Math.round(lead);
+  if (mx > -6 && mx < W + 6) {                                                   // twirling baton
+    const a = lt / 120;
+    f.line(mx + 2 + Math.cos(a) * 3, 46 + Math.sin(a) * 3, mx + 2 - Math.cos(a) * 3, 46 - Math.sin(a) * 3, WHITE);
+  }
+  for (let n = 0; n < 4; n++) {                                                  // music notes
+    const q = ((lt / 1500) + n / 4) % 1, nx = Math.round(lead - 10 - n * 12 + Math.sin(q * 6) * 3), ny = Math.round(38 - q * 18);
+    const c = GOLD.map(v => v * (1 - q * 0.8));
+    f.rect(nx, ny, 2, 2, c); f.rect(nx + 1, ny - 4, 1, 4, c); f.set(nx + 2, ny - 4, c);
+  }
+
+  // giant turkey balloon (offset ~85)
+  const tx = Math.round(lead - 110), ty = Math.round(10 + Math.sin(lt / 700) * 2);
+  if (tx > -40 && tx < W + 4) giantBalloon(f, tx, ty, (x, y) => f.sprite(TURKEY, x, y, { R: [220, 40, 30], O: ORANGE, Y: GOLD, B: BROWN, W: WHITE, r: RED }, 3),
+    [[6, 20, 2], [16, 21, 15], [27, 20, 29]], lt, [255, 140, 0]);
+
+  // cornucopia float (offset ~160)
+  const cx = Math.round(lead - 175);
+  if (cx > -40 && cx < W + 4) {
+    f.rect(cx, 49, 36, 6, [150, 90, 30]); f.rect(cx, 54, 36, 2, GOLD);
+    for (let i = 0; i < 36; i += 4) f.rect(cx + i, 55, 2, 2, [200, 60, 20]);          // skirt fringe
+    for (let i = 0; i < 16; i++) {                                                // the horn of plenty
+      const r = 1 + i * 0.45;
+      f.disc(cx + 28 - i, 42 - Math.sin(i / 5) * 4 + (i > 12 ? (i - 12) * 2 : 0), r * 0.55, i % 3 ? [190, 130, 60] : [150, 95, 40]);
+    }
+    const fruit = [[230, 30, 30], [255, 140, 0], [120, 40, 160], [255, 220, 0], [80, 200, 60]];
+    fruit.forEach((c, i) => f.disc(cx + 5 + i * 4, 46 - (i % 2) * 2, 1.6, c));
+    f.disc(cx + 29, 45, 3, ORANGE); f.rect(cx + 29, 41, 1, 2, GREEN);              // pumpkin
+  }
+
+  // giant football balloon (offset ~215)
+  const bx = Math.round(lead - 230), by = Math.round(16 + Math.sin(lt / 600 + 1) * 2);
+  if (bx > -30 && bx < W + 4) giantBalloon(f, bx, by, (x, y) => {
+    for (let dy = -7; dy <= 7; dy++) { const hw = Math.round(13 * Math.sqrt(1 - (dy / 7.6) ** 2)); f.rect(x + 13 - hw, y + 7 + dy, hw * 2 + 1, 1, [140, 75, 35]); }
+    f.rect(x + 7, y + 7, 13, 1, WHITE); for (let i = 0; i < 5; i++) f.rect(x + 8 + i * 3, y + 6, 1, 3, WHITE);
+    f.rect(x + 2, y + 4, 1, 7, WHITE); f.rect(x + 24, y + 4, 1, 7, WHITE);
+  }, [[5, 13, 2], [21, 13, 24]], lt, [255, 90, 10]);
+
+  // Santa's sleigh float, last as always (offset ~265)
+  const sx = Math.round(lead - 285);
+  if (sx > -40 && sx < W + 4) {
+    f.rect(sx, 50, 38, 5, RED); f.rect(sx, 49, 38, 1, WHITE); f.rect(sx, 55, 38, 2, WHITE);
+    f.sprite(SLEIGH, sx + 4, 34, { W: WHITE, R: RED, S: SKIN, G: GOLD }, 2);
+    f.sprite(DEER[step], sx + 24, 41, { B: BROWN, r: RED }, 1);
+    if (sx > 20 && sx < 90) f.center('HO HO HO!', 16, WHITE);
+    for (let i = 0; i < 14; i++) {                                                 // snow from the float
+      const q = ((lt / 1800) + rnd(i)) % 1;
+      f.set(sx + rnd(i + 4) * 38, 30 + q * 18, SNOW.map(v => v * (1 - q)));
+    }
+  }
+
+  // crowd along the curb, cheering and waving flags
+  for (let i = 0; i < 22; i++) {
+    const x = 2 + i * 6 + Math.round(rnd(i) * 2), jump = Math.floor(lt / 300 + rnd(i) * 4) % 3 === 0 ? 1 : 0;
+    const c = [[230, 60, 60], [60, 120, 230], [250, 200, 40], [60, 180, 90], [240, 120, 190]][i % 5];
+    f.rect(x, 61 - jump, 3, 3, c); f.disc(x + 1, 59 - jump, 1.2, SKIN);
+    if (i % 4 === 1) { f.line(x + 3, 60 - jump, x + 3, 55 - jump, [200, 200, 200]); f.rect(x + 4, 55 - jump, 3, 2, [[230, 30, 30], WHITE, [40, 70, 200]][i % 3]); }
+  }
+  f.center('THANKSGIVING PARADE', 1, GOLD);
 }
 
 // ---------------- Birthday ----------------
@@ -515,7 +642,7 @@ const EVENTS = {
   easter: [[bunny, 9000], [sunrise, 9000], [chickHatch, 9000]],
   july4: [[finale, 8000], [flag, 8000], [sparklerUSA, 9000]],
   halloween: [[ghost, 8000], [witch, 8000], [jackOLantern, 7000]],
-  thanksgiving: [[turkeyRun, 6000], [pie, 6000], [footballPass, 7000]],
+  thanksgiving: [[turkeyRun, 8000], [pie, 6000], [footballPass, 7000], [parade, 26000]],
   birthday: [[blowCandles, 9000], [balloons, 8000], [presentSurprise, 9000]],
   gameday: [[bigPlay, 6000], [crowdWave, 8000], [clapChant, 6000]],
   ...EVENTS2,
