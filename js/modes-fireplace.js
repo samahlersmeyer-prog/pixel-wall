@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=17';
+import { W, H } from './renderer.js?v=18';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -50,7 +50,7 @@ function sim(f, t, flare) {
 
 // One stocking per family member: mom and dad first (a little longer), then the kids oldest to youngest.
 export const FAMILY = [
-  { name: 'Sam', letter: 'S', color: [120, 60, 200], big: true },      // purple (Sam's pick: no repeats)
+  { name: 'Sam', letter: 'S', color: [255, 90, 10], big: true },       // Browns orange
   { name: 'Emily', letter: 'E', color: [20, 105, 45], big: true },     // dark green
   { name: 'Max', letter: 'M', color: [40, 100, 230] },                 // blue
   { name: 'Theo', letter: 'T', color: [210, 30, 40] },                 // red
