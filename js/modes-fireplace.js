@@ -2,7 +2,7 @@
 // About once a minute something gentle happens (the dog naps by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
 // of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=15';
+import { W, H } from './renderer.js?v=16';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };

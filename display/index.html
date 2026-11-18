@@ -30,11 +30,11 @@
 <div id="toast"></div>
 <div id="dot" title="connection"></div>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=15';
-import { LedCanvas } from '../js/led-canvas.js?v=15';
-import { startData } from '../js/data.js?v=15';
-import { wallId, watchState, setState, watchConnection, newPairCode, pairId } from '../js/wall.js?v=15';
-import { startRemote } from '../js/remote.js?v=15';
+import { render, Frame } from '../js/renderer.js?v=16';
+import { LedCanvas } from '../js/led-canvas.js?v=16';
+import { startData } from '../js/data.js?v=16';
+import { wallId, watchState, setState, watchConnection, newPairCode, pairId } from '../js/wall.js?v=16';
+import { startRemote } from '../js/remote.js?v=16';
 
 const id = wallId();
 const msg = document.getElementById('msg');
@@ -124,7 +124,14 @@ startRemote({
 // Keep the TV/laptop awake; double-click for fullscreen.
 async function wake() { try { await navigator.wakeLock?.request('screen'); } catch {} }
 wake(); document.addEventListener('visibilitychange', wake);
-document.addEventListener('dblclick', () => document.documentElement.requestFullscreen?.());
+// Tap or click anywhere to go full screen (hides the browser's address bar, e.g. on an Echo Show).
+function goFull() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || document.webkitFullscreenElement) return;
+  (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el)?.catch?.(() => {});
+}
+document.addEventListener('click', goFull);
+document.addEventListener('touchend', goFull);
 </script>
 </body>
 </html>
