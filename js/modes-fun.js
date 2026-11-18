@@ -1,6 +1,6 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
-import { hsv, W, H } from './renderer.js?v=20';
-import { fireworks } from './modes-holiday.js?v=20';
+import { hsv, W, H } from './renderer.js?v=21';
+import { fireworks } from './modes-holiday.js?v=21';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
@@ -100,7 +100,7 @@ function plasma(f, t) {
 const STEP = 50;   // 20 px per second
 const tri = (k, R) => { const m = ((k % (2 * R)) + 2 * R) % (2 * R); return m <= R ? m : 2 * R - m; };
 function bounce(f, t) {
-  const BW = W - 101, BH = H - 53, RX = W - BW, RY = H - BH;   // 101 and 53 share no factors, so corners come around regularly
+  const BW = 17, BH = 17, RX = W - BW, RY = H - BH;   // a square; 111 and 47 share no factors, so corners come around regularly
   const s = sim(f, 'bounce', () => {
     const first = 1200;   // first corner after ~60 s
     return { px: ((-first % (2 * RX)) + 2 * RX) % (2 * RX), py: ((-first % (2 * RY)) + 2 * RY) % (2 * RY), acc: 0, last: t, hue: Math.random(), hits: 0, party: null, parts: [], near: 0 };
@@ -142,7 +142,9 @@ function bounce(f, t) {
   const col = s.party ? hsv((t / 400) % 1, 0.8, 1) : hsv(s.hue, 0.75, 1);
   f.rect(x, y, BW, BH, col.map(v => v * 0.18));
   f.rect(x, y, BW, 1, col); f.rect(x, y + BH - 1, BW, 1, col); f.rect(x, y, 1, BH, col); f.rect(x + BW - 1, y, 1, BH, col);
-  f.text('DAWG', x + Math.round((BW - f.textWidth('DAWG')) / 2), y + 2, col);
+  // a paw print in the middle of the square
+  const PAW = ['.#...#.', '##...##', '.#.#.#.', '...#...', '.#####.', '#######', '.#####.', '..###..'];
+  f.sprite(PAW, x + 5, y + 4, { '#': col });
   if (!s.party && dx < 6 && dy < 6) for (let k = 0; k < 3; k++) f.add(x + Math.random() * BW, y + Math.random() * BH, [40, 40, 40]);
   if (s.party) {
     const k = sinceParty;
