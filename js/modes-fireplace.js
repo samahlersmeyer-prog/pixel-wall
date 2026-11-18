@@ -1,8 +1,13 @@
-// Cozy fireplace: brick surround, crackling fire, stockings, twinkling garland.
-// About once a minute something gentle happens (the dog naps by the fire,
+// Cozy fireplace: brick surround, crackling fire, stockings, twinkling garland,
+// and a Christmas tree off to the right side.
+// About once a minute something gentle happens (the two dogs nap by the fire,
 // a marshmallow gets toasted, a mug of cocoa steams, a candy cane peeks out
-// of a stocking, or a log pops and sends up sparks).
-import { W, H } from './renderer.js?v=23';
+// of a stocking, a log pops and sends up sparks, or a stocking catches a spark
+// and an elf runs in to put it out).
+// Every other minute Santa visits: candy cane in one stocking, then a present
+// wrapped in that stocking's color goes under the tree. The pile grows until
+// all seven have one, then starts over.
+import { W, H } from './renderer.js?v=24';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -85,19 +90,30 @@ const DOG = [
 ];
 const DOG_NAP = ['...........BB..', '..........BBBB.', 'BBBBBBBBBBBBBBn', 'BBBBBBBBBBBBBB.', 'tBBBBBBBBBBBB..'];
 const DOG_P = { B: [150, 100, 60], K: [20, 20, 20], n: [20, 20, 20], t: [150, 100, 60] };
+// The black dog: same shape plus a red collar, with a light eye glint so it shows up.
+const collar = (rows, r, c) => rows.map((row, j) => j === r ? row.slice(0, c) + 'c' + row.slice(c + 1) : row);
+const BLACK = DOG.map(d => collar(d, 3, 10)), BLACK_NAP = collar(DOG_NAP, 2, 11);
+const BLACK_P = { B: [34, 32, 38], K: [190, 190, 200], n: [5, 5, 5], t: [34, 32, 38], c: [220, 30, 40] };
 
 // ---------- gentle scenes ----------
+// The brown dog and the black dog always come out as a pair: brown leads, black trots right behind.
 function dogNap(f, lt, p) {
   const walkIn = seg(p, 0, 0.2), walkOut = seg(p, 0.82, 1);
-  const y = 55;
-  if (p < 0.2) f.sprite(DOG[Math.floor(lt / 160) % 2], Math.round(-14 + walkIn * 60), y, DOG_P);
-  else if (p < 0.82) {
+  const y = 55, step = Math.floor(lt / 160) % 2;
+  if (p < 0.2) {
+    f.sprite(BLACK[1 - step], Math.round(-32 + walkIn * 62), y, BLACK_P);
+    f.sprite(DOG[step], Math.round(-14 + walkIn * 60), y, DOG_P);
+  } else if (p < 0.82) {
+    f.sprite(BLACK_NAP, 30, 58, BLACK_P);
     f.sprite(DOG_NAP, 46, 58, DOG_P);
-    for (let i = 0; i < 3; i++) {
-      const q = ((lt / 1600) + i / 3) % 1;
-      f.text('z', 62 + q * 8 + i, Math.round(52 - q * 14), [190, 210, 255].map(v => v * (1 - q * 0.8)));
+    for (const [zx, ph] of [[62, 0], [46, 0.5]]) for (let i = 0; i < 3; i++) {
+      const q = ((lt / 1600) + ph + i / 3) % 1;
+      f.text('z', zx + q * 8 + i, Math.round(52 - q * 14), [190, 210, 255].map(v => v * (1 - q * 0.8)));
     }
-  } else f.sprite(DOG[Math.floor(lt / 160) % 2], Math.round(46 + walkOut * 90), y, DOG_P);
+  } else {
+    f.sprite(BLACK[1 - step], Math.round(30 + walkOut * 110), y, BLACK_P);
+    f.sprite(DOG[step], Math.round(46 + walkOut * 110), y, DOG_P);
+  }
 }
 
 function marshmallow(f, lt, p) {
@@ -112,7 +128,7 @@ function marshmallow(f, lt, p) {
 function cocoa(f, lt, p) {
   const fade = Math.min(seg(p, 0, 0.1), 1 - seg(p, 0.9, 1));
   if (fade <= 0) return;
-  const x = 106, y = 55;
+  const x = 12, y = 52;
   const mug = [200, 40, 40].map(v => v * fade);
   f.rect(x, y, 6, 6, mug); f.rect(x + 6, y + 1, 1, 1, mug); f.rect(x + 7, y + 2, 1, 2, mug); f.rect(x + 6, y + 4, 1, 1, mug);
   f.rect(x + 1, y, 4, 1, [120, 70, 40].map(v => v * fade));
@@ -140,6 +156,43 @@ function sparks(f, lt, p) {
   }
 }
 
+// ---------- Christmas tree + presents (right side, beside the firebox) ----------
+const TREE_X = 117, TREE_TOP = 31;                  // star tip / center column
+const TREE_ROWS = [0, 1, 1, 2, 3, 3, 4, 5, 3, 4, 5, 6, 7, 5, 6, 7, 8, 9, 7, 8, 9, 10, 10];  // half-width per row
+const ORN = [[255, 50, 50], [255, 210, 60], [80, 160, 255], [240, 240, 240], [250, 110, 180]];
+function tree(f, t) {
+  const y0 = TREE_TOP + 2;
+  TREE_ROWS.forEach((hw, r) => {
+    for (let dx = -hw; dx <= hw; dx++) {
+      const shade = 0.7 + 0.3 * rnd((dx + 20) * 13 + r * 5);
+      f.set(TREE_X + dx, y0 + r, [20 * shade, 115 * shade, 45 * shade]);
+    }
+  });
+  f.rect(TREE_X - 1, y0 + TREE_ROWS.length, 3, 3, [95, 55, 25]);   // trunk
+  // twinkling ornaments
+  for (let i = 0; i < 16; i++) {
+    const r = 3 + Math.floor(rnd(i * 3.1) * (TREE_ROWS.length - 4)), hw = TREE_ROWS[r];
+    const dx = Math.round((rnd(i * 5.7) * 2 - 1) * (hw - 1));
+    const on = Math.floor(t / 600 + rnd(i) * 7) % 4 !== 0;
+    f.set(TREE_X + dx, y0 + r, ORN[i % ORN.length].map(v => v * (on ? 1 : 0.35)));
+  }
+  // star
+  const tw = 0.8 + 0.2 * Math.sin(t / 300);
+  const star = [255, 220, 70].map(v => v * tw);
+  f.set(TREE_X, TREE_TOP, star); f.set(TREE_X - 1, TREE_TOP + 1, star); f.set(TREE_X, TREE_TOP + 1, [255, 250, 200]);
+  f.set(TREE_X + 1, TREE_TOP + 1, star); f.set(TREE_X, TREE_TOP + 2, star);
+}
+
+// Present slots under the tree: 4 on the hearth line, 3 stacked behind, 1 on top (for extra Surprise visits).
+const SLOTS = [[103, 54], [109, 54], [115, 54], [121, 54], [106, 50], [112, 50], [118, 50], [112, 46]];
+function present(f, x, y, m, a = 1) {
+  const lum = m.color[0] * 0.3 + m.color[1] * 0.59 + m.color[2] * 0.11;
+  const c = m.color.map(v => v * a), rib = (lum > 150 ? [210, 30, 40] : [255, 215, 60]).map(v => v * a);
+  f.rect(x, y, 5, 4, c);
+  f.rect(x + 2, y, 1, 4, rib); f.rect(x, y + 1, 5, 1, rib);
+  f.set(x + 1, y - 1, rib); f.set(x + 3, y - 1, rib);           // bow
+}
+
 const SANTA = [
   ['....WW......', '...RRRW.....', '..RRRRR.....', '.WWWWWWW....', '.SSSSSSS....', '.SKSSSKS....', '.WWWSWWW....', '.WWWWWWW....', '..WWWWW.....',
    'RRRRRRRRR...', 'RRRRRRRRRR..', 'RRRRWWRRRR..', 'KKKKGKKKKK..', 'RRRRRRRRRR..', 'RRRRRRRRRR..', '.RRR..RRR...', '.RRR..RRR...', '.KKK..KKK...', 'KKKK..KKKK..'],
@@ -148,27 +201,101 @@ const SANTA = [
 ];
 const SANTA_P = { W: [245, 245, 245], R: [210, 30, 35], S: [255, 205, 170], K: [25, 20, 20], G: [255, 210, 60] };
 
-// Santa strolls in, tucks a candy cane into one stocking at random, and heads out.
-function santaVisit(f, lt, p, k) {
-  const i = santaPick(k);
-  const target = STOCK_X[i] - 9;
+// Santa strolls in carrying a present, tucks a candy cane into one stocking (picked like names from a hat),
+// then sets the present (wrapped in that stocking's color) under the tree and heads out.
+function santaVisit(f, lt, p, k, fam, pileLen) {
+  const i = santaPick(k), m = fam[i] || FAMILY[i];
+  const atStock = STOCK_X[i] - 9;
+  const [px, py] = SLOTS[Math.min(pileLen, SLOTS.length - 1)];
+  const atTree = px - 12;
   let x;
-  if (p < 0.3) x = -14 + ease(p / 0.3) * (target + 14);
-  else if (p < 0.65) x = target;
-  else x = target + ease((p - 0.65) / 0.35) * (W + 20 - target);
-  const walking = p < 0.3 || p > 0.65;
-  f.sprite(SANTA[walking ? Math.floor(lt / 180) % 2 : 0], Math.round(x), 44, SANTA_P);
-  const reach = seg(p, 0.33, 0.45) - seg(p, 0.5, 0.6);
-  if (reach > 0) f.line(Math.round(x) + 9, 54, Math.round(x) + 9 + 3 * reach, Math.round(54 - reach * 22), [210, 30, 35]);
-  if (p > 0.45) {
+  if (p < 0.22) x = -14 + ease(p / 0.22) * (atStock + 14);
+  else if (p < 0.48) x = atStock;
+  else if (p < 0.62) x = atStock + ease((p - 0.48) / 0.14) * (atTree - atStock);
+  else if (p < 0.74) x = atTree;
+  else x = atTree + ease((p - 0.74) / 0.26) * (W + 20 - atTree);
+  x = Math.round(x);
+  const walking = p < 0.22 || (p > 0.48 && p < 0.62) || p > 0.74;
+  f.sprite(SANTA[walking ? Math.floor(lt / 180) % 2 : 0], x, 44, SANTA_P);
+  // candy cane
+  const reach = seg(p, 0.25, 0.33) - seg(p, 0.38, 0.45);
+  if (reach > 0) f.line(x + 9, 54, x + 9 + 3 * reach, Math.round(54 - reach * 22), [210, 30, 35]);
+  if (p > 0.33) {
     const sx = STOCK_X[i] + 4;
     for (let j = 0; j < 8; j++) f.set(sx, 7 + j, j % 2 ? [255, 255, 255] : [230, 30, 30]);
     f.set(sx + 1, 6, [255, 255, 255]); f.set(sx + 2, 7, [230, 30, 30]); f.set(sx + 2, 8, [255, 255, 255]);
   }
-  if (p > 0.48 && p < 0.7) f.text('HO HO HO', Math.max(0, Math.min(W - 47, Math.round(x) - 14)), 36, [255, 255, 255]);
+  if (p > 0.33 && p < 0.5) f.text('HO HO HO', Math.max(0, Math.min(W - 47, x - 14)), 36, [255, 255, 255]);
+  // the present: carried at his side, then set down under the tree
+  const put = ease(seg(p, 0.64, 0.72));
+  if (p < 0.64) present(f, x + 10, 54, m);
+  else present(f, Math.round(x + 10 + (px - x - 10) * put), Math.round(54 + (py - 54) * put), m);
 }
 
-const SCENES = [[dogNap, 22000], [santaVisit, 16000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000]];
+// ---------- stocking fire + elf ----------
+const ELF = [
+  ['.....W.', '....GG.', '...GGG.', '..GGGG.', '.RRRRR.', 'SSSSSSS', '.SKSKS.', '.SSSSS.', '.GGRGG.', 'GGGGGGG', '.GGYGG.', '.RW.RW.', 'KK...KK'],
+  ['.....W.', '....GG.', '...GGG.', '..GGGG.', '.RRRRR.', 'SSSSSSS', '.SKSKS.', '.SSSSS.', '.GGRGG.', 'GGGGGGG', '.GGYGG.', '..RWR..', '.KK.KK.'],
+];
+const ELF_P = { W: [245, 245, 245], G: [30, 160, 60], R: [210, 30, 40], S: [255, 205, 170], K: [60, 35, 20], Y: [255, 210, 60] };
+const BUCKET = [[150, 150, 165], [110, 110, 125]];
+
+function stockingFire(f, lt, p, k, fam) {
+  const i = Math.floor(rnd(k * 3.7 + 1) * 7);
+  const sx = STOCK_X[i], len = (fam[i] || FAMILY[i]).big ? 9 : 7, bottom = 13 + 7 + len + 2;
+  // a stray spark drifts up out of the fire to the stocking's toe
+  if (p < 0.12) {
+    const q = p / 0.12;
+    const x0 = OX + FW / 2, y0 = OY + FH - 8;
+    f.set(Math.round(x0 + (sx + 5 - x0) * q + Math.sin(q * 9) * 2), Math.round(y0 + (bottom - y0) * q), [255, 190, 60]);
+  }
+  // flames grow on the stocking, then the water knocks them down
+  const flame = seg(p, 0.1, 0.3) * (1 - seg(p, 0.46, 0.6));
+  if (flame > 0) {
+    const fh = 2 + flame * 9;
+    for (let dx = 0; dx < 8; dx++) {
+      const hgt = fh * (0.55 + 0.45 * Math.abs(Math.sin(lt / 90 + dx * 1.7)));
+      for (let j = 0; j < hgt; j++) {
+        const k2 = j / hgt;
+        f.set(sx + dx, bottom - j, k2 < 0.4 ? [255, 230, 120] : k2 < 0.75 ? [255, 140, 20] : [220, 40, 10]);
+      }
+    }
+  }
+  // smoke after it's out
+  const smoke = seg(p, 0.55, 0.62) * (1 - seg(p, 0.8, 0.92));
+  if (smoke > 0) for (let n = 0; n < 10; n++) {
+    const q = ((lt / 1400) + rnd(n)) % 1;
+    f.set(Math.round(sx + 2 + rnd(n + 3) * 4 + Math.sin(q * 6 + n) * 2), Math.round(bottom - 4 - q * 18), [150, 150, 155].map(v => v * (1 - q) * smoke));
+  }
+  // sooty toe for a bit afterwards
+  if (p > 0.58 && p < 0.9) f.rect(sx + 2, bottom - 2, 6, 3, [45, 40, 38]);
+  // the elf: runs in with a bucket, splashes it up, gives a thumbs up, runs back out
+  const stand = sx - 6, from = -10;
+  let ex;
+  if (p < 0.15) return;
+  if (p < 0.38) ex = from + ease((p - 0.15) / 0.23) * (stand - from);
+  else if (p < 0.82) ex = stand;
+  else ex = stand + ease((p - 0.82) / 0.18) * (from - stand);
+  ex = Math.round(ex);
+  const running = p < 0.38 || p > 0.82;
+  const hop = p > 0.62 && p < 0.82 && Math.floor(lt / 220) % 2 ? 2 : 0;   // happy hops once it's out
+  const ey = 45 - hop;
+  f.sprite(ELF[running ? Math.floor(lt / 110) % 2 : 0], ex, ey, ELF_P);
+  if (p < 0.38 || (p >= 0.38 && p < 0.42)) {
+    f.rect(ex + 7, ey + 8, 3, 3, BUCKET[0]); f.rect(ex + 7, ey + 8, 3, 1, [80, 150, 255]);  // full bucket
+  } else if (p < 0.6) {
+    f.rect(ex + 7, ey + 6, 3, 3, BUCKET[1]);                                             // tipped up
+    for (let n = 0; n < 18; n++) {                                                        // the splash
+      const q = ((lt / 500) + n / 18) % 1;
+      const wx = ex + 8 + (sx + 4 - ex - 8) * q + (rnd(n) - 0.5) * 3, wy = ey + 6 + (bottom - ey - 6) * q - Math.sin(q * Math.PI) * 6;
+      f.set(Math.round(wx), Math.round(wy), [90, 170, 255]);
+    }
+  } else {
+    f.rect(ex + 7, ey + 8, 3, 3, BUCKET[1]);
+  }
+}
+
+const SCENES = [[dogNap, 22000], [santaVisit, 24000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000], [stockingFire, 18000]];
 const EVERY = 60000, START = 20000;
 
 // Which stocking gets the candy cane: like drawing names from a hat. Every 7 visits, each of the 7 stockings
@@ -185,7 +312,7 @@ function activeScene(t, data) {
   const kick = data.kick;
   if (kick && t - kick.t >= 0) {
     const sc = SCENES[kick.n % SCENES.length];
-    if (t - kick.t < sc[1]) return { sc, lt: t - kick.t, k: kick.n };
+    if (t - kick.t < sc[1]) return { sc, lt: t - kick.t, k: kick.n, kicked: true };
   }
   const c = Math.floor((t - START) / EVERY);
   if (c < 0) return null;
@@ -200,6 +327,23 @@ function activeScene(t, data) {
   }
   const off = t - START - c * EVERY;
   return off < sc[1] ? { sc, lt: off, k: c } : null;
+}
+
+// The presents already under the tree from Santa's timed visits this round (not counting a visit in progress).
+// When all seven have one, they stay for a minute, fade out, and the next round starts fresh.
+function pile(t, scene) {
+  const c = Math.floor((t - START) / EVERY);
+  if (c < 0) return { list: [], fade: 1 };
+  const inVisit = c % 2 === 0;                       // Santa's minute (his visit sits in the first 24s)
+  const done = inVisit ? c / 2 : (c + 1) / 2;        // visits finished (the current one counts once it's over)
+  const visitOver = inVisit && !(scene && scene.sc[0] === santaVisit && !scene.kicked);
+  const n = done + (visitOver ? 1 : 0);
+  const start = 7 * Math.floor((inVisit && !visitOver ? done : n - 1) / 7);
+  const list = [];
+  for (let v = start; v < n; v++) list.push(santaPick(v * 2));
+  const off = t - START - c * EVERY;
+  const fade = list.length === 7 && !inVisit ? 1 - seg(off, EVERY - 5000, EVERY) : 1;
+  return { list, fade };
 }
 
 export function drawFireplace(f, st, data, t, now) {
@@ -239,8 +383,12 @@ export function drawFireplace(f, st, data, t, now) {
     f.rect(cx, 3, 2, 5, [240, 235, 220]);
     f.set(cx, 2 - (Math.floor(t / 180 + cx) % 2), [255, 200, 60]);
   }
-  // Stockings: mom, dad and the five kids.
+  // Christmas tree with the presents Santa has left so far.
   const fam = st.fireplace?.stockings || FAMILY;
+  tree(f, t);
+  const presents = pile(t, scene);
+  presents.list.forEach((s, j) => present(f, SLOTS[j][0], SLOTS[j][1], fam[s] || FAMILY[s], presents.fade));
+  // Stockings: mom, dad and the five kids.
   fam.slice(0, 7).forEach((m, i) => {
     const jig = scene && scene.sc[0] === candyCane && scene.k % STOCK_X.length === i && scene.lt < 2500 ? Math.round(Math.sin(scene.lt / 60)) : 0;
     stocking(f, STOCK_X[i] + jig, 13, m);
@@ -250,7 +398,7 @@ export function drawFireplace(f, st, data, t, now) {
     const q = ((t / 2600) + rnd(i)) % 1;
     f.set(OX + 20 + rnd(i + 2) * 36 + Math.sin(q * 6 + i) * 2, OY + FH - 8 - q * 26, [255, 150, 40].map(v => v * (1 - q)));
   }
-  if (scene) scene.sc[0](f, scene.lt, scene.lt / scene.sc[1], scene.k);
+  if (scene) scene.sc[0](f, scene.lt, scene.lt / scene.sc[1], scene.k, fam, presents.list.length);
   if (st.fireplace?.clock) {
     let hh = now.getHours() % 12 || 12;
     f.center(`${hh}:${String(now.getMinutes()).padStart(2, '0')}`, 0, [255, 220, 170]);
