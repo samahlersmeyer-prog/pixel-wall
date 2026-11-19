@@ -1,6 +1,6 @@
 // U.S. map modes: weather heat map, state capitals quiz, places we've been.
-import { MAP_W, MAP_H, MAP_GRID, STATES } from './usmap-data.js?v=33';
-import { hsv } from './renderer.js?v=33';
+import { MAP_W, MAP_H, MAP_GRID, STATES } from './usmap-data.js?v=34';
+import { hsv } from './renderer.js?v=34';
 
 const X0 = 0, Y0 = 0, COL = 92; // map at left, info column at right
 const cell = (x, y) => (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) ? -1 : (MAP_GRID.charCodeAt(y * MAP_W + x) === 46 ? -1 : MAP_GRID.charCodeAt(y * MAP_W + x) - 48);

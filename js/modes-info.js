@@ -1,5 +1,5 @@
 // Info modes: CFP rankings + projected bracket, calendar, countdown.
-import { brighten, W } from './renderer.js?v=33';
+import { brighten, W } from './renderer.js?v=34';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];

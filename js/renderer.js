@@ -1,11 +1,11 @@
 // Shared renderer: turns the wall's state + live data into a 128x64 RGB frame.
 // The TV simulator, the phone preview and (later) the LED board all use this,
 // so what you see on the TV is exactly what the panels will show.
-import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=33';
-import { drawMap } from './modes-map.js?v=33';
-import { drawCfp, drawCalendar, drawCountdown, drawForecast } from './modes-info.js?v=33';
-import { drawHoliday } from './modes-holiday.js?v=33';
-import { drawFun } from './modes-fun.js?v=33';
+import { glyph, advance, GLYPH_W, GLYPH_H } from './font.js?v=34';
+import { drawMap } from './modes-map.js?v=34';
+import { drawCfp, drawCalendar, drawCountdown, drawForecast } from './modes-info.js?v=34';
+import { drawHoliday } from './modes-holiday.js?v=34';
+import { drawFun } from './modes-fun.js?v=34';
 
 export const W = 128;
 export const H = 64;
