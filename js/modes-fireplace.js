@@ -7,7 +7,7 @@
 // Every other minute Santa visits: candy cane in one stocking, then a present
 // wrapped in that stocking's color goes under the tree. When all seven have
 // one, the whole family comes in, opens them and walks off.
-import { W, H } from './renderer.js?v=28';
+import { W, H } from './renderer.js?v=29';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -84,16 +84,16 @@ function stocking(f, x, y, m) {
   f.rect(x + 7, y + 6 + len, 1, 2, m.color);
   f.rect(x + 3, y + 9 + len, 4, 1, m.color.map(v => v * 0.7));  // toe shading
 }
-const DOG = [
+export const DOG = [
   ['..........BB..', '.........BBBB.', '........BBBKBn', 'BBBBBBBBBBBB..', 'BBBBBBBBBBB...', 'tBBBBBBBBBB...', '.B..B....B..B.', '.B..B....B..B.'],
   ['..........BB..', '.........BBBB.', '........BBBKBn', 'BBBBBBBBBBBB..', 'BBBBBBBBBBB...', 'tBBBBBBBBBB...', '..B..B..B..B..', '..B..B..B..B..'],
 ];
 const DOG_NAP = ['...........BB..', '..........BBBB.', 'BBBBBBBBBBBBBBn', 'BBBBBBBBBBBBBB.', 'tBBBBBBBBBBBB..'];
-const DOG_P = { B: [150, 100, 60], K: [20, 20, 20], n: [20, 20, 20], t: [150, 100, 60] };
+export const DOG_P = { B: [150, 100, 60], K: [20, 20, 20], n: [20, 20, 20], t: [150, 100, 60] };
 // The black dog: same shape plus a red collar, with a light eye glint so it shows up.
 const collar = (rows, r, c) => rows.map((row, j) => j === r ? row.slice(0, c) + 'c' + row.slice(c + 1) : row);
-const BLACK = DOG.map(d => collar(d, 3, 10)), BLACK_NAP = collar(DOG_NAP, 2, 11);
-const BLACK_P = { B: [34, 32, 38], K: [190, 190, 200], n: [5, 5, 5], t: [34, 32, 38], c: [220, 30, 40] };
+export const BLACK = DOG.map(d => collar(d, 3, 10)), BLACK_NAP = collar(DOG_NAP, 2, 11);
+export const BLACK_P = { B: [34, 32, 38], K: [190, 190, 200], n: [5, 5, 5], t: [34, 32, 38], c: [220, 30, 40] };
 
 // ---------- gentle scenes ----------
 // The brown dog and the black dog always come out as a pair: brown leads, black trots right behind.
@@ -300,7 +300,7 @@ function stockingFire(f, lt, p, k, fam) {
 // ---------- Christmas morning: the family opens the presents ----------
 // Once all seven presents are under the tree, the whole family walks in and lines up,
 // each one gets their present (youngest first), tears it open, celebrates, and everyone walks off.
-const PEOPLE = [   // height, hair color, long hair — same order as FAMILY (Sam, Emily, Max, Theo, Junie, Louie, Josie)
+export const PEOPLE = [   // height, hair color, long hair — same order as FAMILY (Sam, Emily, Max, Theo, Junie, Louie, Josie)
   { h: 19, hair: [150, 150, 155] },               // Sam: gray
   { h: 17, hair: [105, 65, 30], long: true },     // Emily: brown
   { h: 16, hair: [160, 115, 65] },                // Max: lighter brown
@@ -315,7 +315,7 @@ const LINE_X = j => 10 + j * 13;
 const FAM_DUR = 40000;
 
 // A little person, feet on y = 62. step: 0/1 walking frame; up: arms raised.
-function person(f, x, y, who, shirt, step, up) {
+export function person(f, x, y, who, shirt, step, up) {
   const head = who.h > 12 ? 4 : 3, body = Math.round((who.h - head - 2) * 0.5), legs = who.h - head - 2 - body;
   let yy = y - who.h + 1;
   f.rect(x + 1, yy, 4, 1, who.hair); yy++;                                   // hair

@@ -1,8 +1,9 @@
 // Holiday themes. "auto" picks whatever holiday is in season for today's date.
-import { hsv, W, H } from './renderer.js?v=28';
-import { holidaySurprise } from './holiday-events.js?v=28';
-import { drawFireplace } from './modes-fireplace.js?v=28';
-import { T2, THEMES2, DATES, advent1 } from './modes-holiday2.js?v=28';
+import { hsv, W, H } from './renderer.js?v=29';
+import { holidaySurprise } from './holiday-events.js?v=29';
+import { drawFireplace } from './modes-fireplace.js?v=29';
+import { drawCoop } from './modes-coop.js?v=29';
+import { T2, THEMES2, DATES, advent1 } from './modes-holiday2.js?v=29';
 
 function rnd(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
@@ -58,7 +59,7 @@ function nextFor(h, today) {
 const L2 = Object.fromEntries(THEMES2);
 // In calendar order for the phone.
 export const THEMES = [
-  ['auto', 'Auto (by date)'], ['loop', 'Holiday loop (your picks)'], ['fireplace', 'Fireplace (cozy, all season)'],
+  ['auto', 'Auto (by date)'], ['loop', 'Holiday loop (your picks)'], ['fireplace', 'Fireplace (cozy, all season)'], ['coop', 'Backyard Coop (the chickens, all season)'],
   ['newyear', "New Year's"], ['epiphany', L2.epiphany], ['mlk', L2.mlk], ['valentines', "Valentine's Day"], ['presidents', L2.presidents],
   ['lent', L2.lent], ['stpatricks', "St. Patrick's Day"], ['palmsunday', L2.palmsunday], ['goodfriday', L2.goodfriday], ['easter', 'Easter'],
   ['ascension', L2.ascension], ['pentecost', L2.pentecost], ['memorial', L2.memorial], ['july4', '4th of July'], ['labor', L2.labor],
@@ -288,6 +289,7 @@ export function drawHoliday(f, st, data, t, now) {
     if (theme === 'reformation' && Math.floor(t / 120000) % 2) theme = 'halloween';
   }
   if (theme === 'fireplace') { drawFireplace(f, st, data, t, now); return; }
+  if (theme === 'coop') { drawCoop(f, st, data, t, now); return; }
   if (T2[theme]) T2[theme](f, t, today, st, { line: (k, on, label) => countdownLine(k, today, st, on, label) });
   else { if (!T[theme]) theme = 'christmas'; T[theme](f, t, today, st, data); }
   if (st.holiday?.surprises === false) return;

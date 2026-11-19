@@ -7,9 +7,9 @@
 //   LB / RB  ( - / + )                  dimmer / brighter
 //   Y (H)                               show / hide the button guide
 //   Select + Start / Esc / Home         home menu
-import { THEMES } from './modes-holiday.js?v=28';
-import { TEAMS } from './data.js?v=28';
-import { FUN } from './modes-fun.js?v=28';
+import { THEMES } from './modes-holiday.js?v=29';
+import { TEAMS } from './data.js?v=29';
+import { FUN } from './modes-fun.js?v=29';
 
 const SCREENS = [
   ['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],
@@ -20,7 +20,7 @@ const HOLIDAYS = THEMES.filter(([k]) => k !== 'gameday');
 
 export function startRemote({ getState, setState, toast }) {
   const st = () => getState() || {};
-  const screenOf = m => m === 'christmas' || m === 'fireplace' ? 'holiday' : m;
+  const screenOf = m => m === 'christmas' || m === 'fireplace' || m === 'coop' ? 'holiday' : m;
   const step = (list, cur, d) => { const i = list.findIndex(x => x[0] === cur); return list[(i + d + list.length * 2) % list.length]; };
 
   function screen(d) {
