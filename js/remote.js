@@ -7,9 +7,9 @@
 //   LB / RB  ( - / + )                  dimmer / brighter
 //   Y (H)                               show / hide the button guide
 //   Select + Start / Esc / Home         home menu
-import { THEMES } from './modes-holiday.js?v=29';
-import { TEAMS } from './data.js?v=29';
-import { FUN } from './modes-fun.js?v=29';
+import { THEMES } from './modes-holiday.js?v=30';
+import { TEAMS } from './data.js?v=30';
+import { FUN } from './modes-fun.js?v=30';
 
 const SCREENS = [
   ['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],

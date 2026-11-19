@@ -5,8 +5,8 @@
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=29';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=29';
+import { W, H } from './renderer.js?v=30';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=30';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -71,7 +71,7 @@ function sky(f, m, sun, t) {
   const twi = Math.max(1 - Math.abs(m - sun.rise) / 40, 1 - Math.abs(m - sun.set) / 40, 0);
   for (let y = 0; y < 34; y++) {
     const k = y / 34;
-    let c = mix(mix([4, 6, 22], [10, 14, 40], k), mix([70, 130, 225], [150, 195, 245], k), day);
+    let c = mix(mix([10, 14, 45], [22, 30, 75], k), mix([70, 140, 240], [150, 200, 255], k), day);
     c = mix(c, [255, 140, 70], twi * k * 0.7);
     f.rect(0, y, W, 1, c);
   }
@@ -87,7 +87,7 @@ function sky(f, m, sun, t) {
   } else {
     const night = (m < sun.rise ? m + 1440 : m) - sun.set, len = 1440 - (sun.set - sun.rise);
     const q = clamp(night / len), mx = 6 + q * 116, my = 26 - Math.sin(q * Math.PI) * 20;
-    f.disc(mx, my, 3, [235, 235, 210]); f.disc(mx + 1.5, my - 1, 2.4, mix([4, 6, 22], [10, 14, 40], my / 34));
+    f.disc(mx, my, 3, [235, 235, 210]); f.disc(mx + 1.5, my - 1, 2.4, mix([10, 14, 45], [22, 30, 75], my / 34));
   }
   // a few slow clouds in the daytime
   if (day > 0.3) for (let i = 0; i < 3; i++) {
@@ -121,7 +121,7 @@ function treeLine(f, sea, light, t) {
       if (d > r - rnd((dx + 20) * 3 + dy) * 1.5) continue;
       const n = rnd(i * 97 + dx * 13 + dy * 7);
       const c = sea === 'fall' ? pal[Math.floor(rnd(i * 3) * 3 + n * 2) % pal.length] : pal[Math.floor(n * pal.length)];
-      f.set(Math.round(cx + dx), Math.round(cy + dy), c.map(v => v * light * (0.7 + 0.3 * (1 - (dy + r) / (2 * r)))));
+      f.set(Math.round(cx + dx), Math.round(cy + dy), c.map(v => Math.min(255, v * 1.2) * light * (0.8 + 0.2 * (1 - (dy + r) / (2 * r)))));
     }
   }
 }
@@ -129,7 +129,7 @@ function treeLine(f, sea, light, t) {
 function lawn(f, sea, light) {
   for (let y = 34; y < H; y++) for (let x = 0; x < W; x++) {
     const stripe = Math.floor(x / 16) % 2 ? 1 : 0.9;
-    let c = sea === 'winter' ? [225, 230, 240] : sea === 'fall' ? [95, 140, 55] : [70, 165, 60];
+    let c = sea === 'winter' ? [235, 240, 250] : sea === 'fall' ? [95, 175, 55] : [70, 200, 60];
     if (sea !== 'winter' && rnd(x * 13 + y * 3) > 0.92) c = c.map(v => v * 0.8);
     f.set(x, y, c.map(v => v * stripe * light));
   }
@@ -303,7 +303,7 @@ export function drawCoop(f, st, data, t, now) {
   const m = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
   const sun = sunTimes(now), sea = season(now);
   const day = sky(f, m, sun, t);
-  const light = 0.3 + 0.7 * day;
+  const light = 0.55 + 0.45 * day;                       // never goes too dark on the panels
   treeLine(f, sea, light, t);
   lawn(f, sea, light);
   // where every hen is: inside, walking out / in through the door, or at her spot (meandering)
