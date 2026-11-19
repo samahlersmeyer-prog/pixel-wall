@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="app-version" content="31">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pixel Wall">
@@ -206,14 +207,15 @@
 
 </main>
 
+<script type="module" src="../js/autoupdate.js?v=31"></script>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=30';
-import { LedCanvas } from '../js/led-canvas.js?v=30';
-import { startData, TEAMS } from '../js/data.js?v=30';
-import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=30';
-import { FUN } from '../js/modes-fun.js?v=30';
-import { STATES } from '../js/usmap-data.js?v=30';
-import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=30';
+import { render, Frame } from '../js/renderer.js?v=31';
+import { LedCanvas } from '../js/led-canvas.js?v=31';
+import { startData, TEAMS } from '../js/data.js?v=31';
+import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=31';
+import { FUN } from '../js/modes-fun.js?v=31';
+import { STATES } from '../js/usmap-data.js?v=31';
+import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=31';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];

@@ -1,6 +1,6 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
-import { hsv, W, H } from './renderer.js?v=30';
-import { fireworks } from './modes-holiday.js?v=30';
+import { hsv, W, H } from './renderer.js?v=31';
+import { fireworks } from './modes-holiday.js?v=31';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};

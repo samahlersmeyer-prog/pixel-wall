@@ -32,3 +32,7 @@ Each wall has a long random key in its link (`#w=...`). The key is never stored 
 1. Add a `drawX(f, state, data, t, now)` function in `js/renderer.js` and call it from `render()`.
 2. Add a button in `control/index.html` that calls `setState(id, { mode: 'x' })`.
 3. Run `node tools/preview.mjs previews` to check the layout.
+
+## Updating
+
+After changing anything, run `sh tools/bump.sh` before committing. It bumps the version in every `?v=` import, the pages' `app-version` tag and `version.json`. The phone controller (including a saved Home Screen bookmark) and the TV check `version.json` when opened, when switched back to, and every 2 minutes, and reload themselves when there's a newer version.
