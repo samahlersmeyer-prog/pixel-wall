@@ -5,8 +5,8 @@
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=32';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=32';
+import { W, H } from './renderer.js?v=33';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=33';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -298,13 +298,28 @@ function owl(f, lt, p) {
 const DAY_EVENTS = [[eggLay, 10000], [bugChase, 9000], [wormTug, 10000], [dogsVisit, 9000], [feedTime, 16000], [dustBath, 8000]];
 const NIGHT_EVENTS = [[shootingStar, 2500], [owl, 9000]];
 const EVERY = 45000, START = 15000;
+const INTRO = 40, MORNING_OUT = 9;                        // morning opening: 40 s, first hen out at 9 s
+const ORDER = [16, 2, 9, 5, 12, 0, 14, 7, 3, 10, 1, 15, 6, 11, 4, 13, 8];   // who comes out first (the yellow hen leads)
 
 export function drawCoop(f, st, data, t, now) {
   const realM = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
   const sun = sunTimes(now), sea = season(now);
   // By default the hens are always out playing on a sunny afternoon; the "real sunrise/sunset"
   // setting makes the scene follow the actual time of day instead.
-  const m = st.coop?.real ? realM : sun.rise + (sun.set - sun.rise) * 0.62;
+  // Every time the coop comes on screen (or Surprise picks "good morning") it opens with the morning:
+  // the sun comes up, the doors open, and the hens hop out one at a time.
+  f.sim = f.sim || {};
+  const S = f.sim;
+  if (S.coopLast === undefined || t - S.coopLast > 3000 || t < S.coopLast) S.coopStart = t;
+  S.coopLast = t;
+  const kick = data.kick;
+  if (kick && kick.n % (DAY_EVENTS.length + 1) === DAY_EVENTS.length && t >= kick.t && S.coopKick !== kick.n) { S.coopKick = kick.n; S.coopStart = kick.t; }
+  const ms = (t - S.coopStart) / 1000;                     // seconds into the morning
+  const intro = !st.coop?.real && ms < INTRO;
+  const after = sun.rise + (sun.set - sun.rise) * 0.62;
+  const m = st.coop?.real ? realM
+    : ms < 10 ? sun.rise - 20 + ms * 4                        // dawn to sunrise
+    : ms < INTRO ? sun.rise + 20 + (after - sun.rise - 20) * ease((ms - 10) / (INTRO - 10)) : after;
   const day = sky(f, m, sun, t);
   const light = 0.55 + 0.45 * day;                       // never goes too dark on the panels
   treeLine(f, sea, light, t);
@@ -312,11 +327,18 @@ export function drawCoop(f, st, data, t, now) {
   // where every hen is: inside, walking out / in through the door, or at her spot (meandering)
   const hens = FLOCK.map((kind, i) => {
     const hm = home(i);
-    const out0 = sun.rise + 4 + i * 1.3, in0 = sun.set - 28 + i * 1.3;
     let w = 1;                                           // 0 = at the door, 1 = at her spot
-    if (m < out0 || m > in0 + 1.6) return { i, kind, inside: true };
-    if (m < out0 + 1.6) w = (m - out0) / 1.6;
-    else if (m > in0) w = 1 - (m - in0) / 1.6;
+    if (intro) {                                         // morning: out the door one at a time
+      const go = MORNING_OUT + ORDER.indexOf(i) * 1.5;
+      if (ms < go) return { i, kind, inside: true };
+      w = clamp((ms - go) / 2.5);
+    } else if (st.coop?.real) {                          // real time: out just after sunrise, in before sunset
+      const out0 = sun.rise + 4 + i * 0.1, in0 = sun.set - 20 + i * 0.1;
+      if (m < out0 || m > in0 + 0.05) return { i, kind, inside: true };
+      if (m < out0 + 0.05) w = (m - out0) / 0.05;
+      else if (m > in0) w = 1 - (m - in0) / 0.05;
+    }
+    const goingIn = st.coop?.real && m > sun.rise + 60 && w < 1;
     const wan = Math.sin(t / (6500 + i * 700) + i * 1.7), dwan = Math.cos(t / (6500 + i * 700) + i * 1.7);
     const span = hm.run ? 4 : 8;
     let hx = hm.x + wan * span;
@@ -324,17 +346,17 @@ export function drawCoop(f, st, data, t, now) {
     const x = DOOR.x + (hx - DOOR.x) * w, y = DOOR.y + (hm.y - DOOR.y) * w;
     const moving = w < 1 || Math.abs(dwan) > 0.35;
     const frame = moving ? (Math.floor(t / 180 + i) % 2 ? 'walk' : 'stand') : (Math.floor(t / 260 + i * 3) % 3 ? 'peck' : 'stand');
-    const left = w < 1 ? (m > in0 ? hx > DOOR.x : hx < DOOR.x) : dwan < 0;
+    const left = w < 1 ? (goingIn ? hx > DOOR.x : hx < DOOR.x) : dwan < 0;
     return { i, kind, x, y, hx, hy: hm.y, run: hm.run && w === 1, frame, left };
   });
   const out = hens.filter(h => !h.inside);
-  const doorsOpen = out.length > 0;
+  const doorsOpen = out.length > 0 || (intro && ms > 7);
   // happenings
   const list = doorsOpen ? DAY_EVENTS : NIGHT_EVENTS;
   let ev = null, lt = 0, k = 0;
-  const kick = data.kick;
-  if (kick && t - kick.t >= 0) { const e = list[kick.n % list.length]; if (t - kick.t < e[1]) { ev = e; lt = t - kick.t; k = kick.n; } }
-  if (!ev) {
+  const kn = doorsOpen && kick ? kick.n % (DAY_EVENTS.length + 1) : kick?.n;
+  if (!intro && kick && t - kick.t >= 0 && kn < list.length) { const e = list[kn % list.length]; if (t - kick.t < e[1]) { ev = e; lt = t - kick.t; k = kick.n; } }
+  if (!ev && !intro) {
     const c = Math.floor((t - START) / EVERY);
     if (c >= 0) {
       const n = list.length, round = Math.floor(c / n);
@@ -364,6 +386,7 @@ export function drawCoop(f, st, data, t, now) {
     const q = ((t / 6000) + rnd(i)) % 1;
     f.set(Math.round(rnd(i + 3) * W + Math.sin(q * 6 + i) * 3), Math.round(q * H), [240, 240, 255].map(v => v * (0.5 + 0.5 * light)));
   }
+  if (intro && ms > 6 && ms < 22) f.center('GOOD MORNING!', 1, [255, 230, 150]);
   if (!doorsOpen && day < 0.3 && !ev) {                 // sleepy z's from the coop
     for (let i = 0; i < 3; i++) {
       const q = ((t / 1800) + i / 3) % 1;
