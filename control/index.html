@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="app-version" content="34">
+<meta name="app-version" content="35">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pixel Wall">
@@ -145,6 +145,7 @@
     <h2>Holidays</h2>
     <button class="primary" id="surprise" style="margin-bottom:12px">Surprise! Play a scene now</button>
     <div class="grid2" style="margin-bottom:12px"><button id="fpClock">Fireplace clock: off</button><button id="coopReal">Chickens: always out</button></div>
+    <button class="primary" id="coopOut" style="margin-bottom:12px">🐔 Let the chickens out!</button>
     <div class="list" id="themes"></div>
     <h3>Holiday loop</h3>
     <p class="small">Pick the holidays to cycle through, then start the loop.</p>
@@ -209,15 +210,15 @@
 </main>
 
 <script>document.addEventListener("DOMContentLoaded",()=>{const v=document.querySelector('meta[name="app-version"]').content,e=document.getElementById("appVer");if(e)e.textContent="Pixel Wall v"+v;});</script>
-<script type="module" src="../js/autoupdate.js?v=34"></script>
+<script type="module" src="../js/autoupdate.js?v=35"></script>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=34';
-import { LedCanvas } from '../js/led-canvas.js?v=34';
-import { startData, TEAMS } from '../js/data.js?v=34';
-import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=34';
-import { FUN } from '../js/modes-fun.js?v=34';
-import { STATES } from '../js/usmap-data.js?v=34';
-import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=34';
+import { render, Frame } from '../js/renderer.js?v=35';
+import { LedCanvas } from '../js/led-canvas.js?v=35';
+import { startData, TEAMS } from '../js/data.js?v=35';
+import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=35';
+import { FUN } from '../js/modes-fun.js?v=35';
+import { STATES } from '../js/usmap-data.js?v=35';
+import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=35';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -395,7 +396,10 @@ function start() {
     if (t !== 'message' && tileOf(state.mode) !== t) set({ mode: t });
     document.querySelector(`[data-panel="${t}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
-  $('#surprise').onclick = () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: state.holiday?.theme || 'auto', kick: Date.now() } });
+  // stay on the coop / fireplace when Surprise is pressed from those modes
+  const curTheme = () => state.mode === 'coop' || state.mode === 'fireplace' ? state.mode : state.holiday?.theme || 'auto';
+  $('#surprise').onclick = () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: curTheme(), kick: Date.now() } });
+  $('#coopOut').onclick = () => set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: 'coop' }, coop: { ...(state.coop || {}), outNow: Date.now() } });
 
   function paint() {
     const mode = tileOf(state.mode || 'message');

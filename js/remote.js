@@ -7,9 +7,9 @@
 //   LB / RB  ( - / + )                  dimmer / brighter
 //   Y (H)                               show / hide the button guide
 //   Select + Start / Esc / Home         home menu
-import { THEMES } from './modes-holiday.js?v=34';
-import { TEAMS } from './data.js?v=34';
-import { FUN } from './modes-fun.js?v=34';
+import { THEMES } from './modes-holiday.js?v=35';
+import { TEAMS } from './data.js?v=35';
+import { FUN } from './modes-fun.js?v=35';
 
 const SCREENS = [
   ['clock', 'Clock'], ['weather', 'Weather'], ['scoreboard', 'Scores'], ['cfp', 'CFP'], ['calendar', 'Calendar'],
@@ -37,7 +37,7 @@ export function startRemote({ getState, setState, toast }) {
   }
   function action() {
     const s = st();
-    if (screenOf(s.mode) === 'holiday') { setState({ holiday: { ...(s.holiday || {}), theme: s.holiday?.theme || 'auto', kick: Date.now() } }); toast('Surprise!'); }
+    if (screenOf(s.mode) === 'holiday') { const th = s.mode === 'coop' || s.mode === 'fireplace' ? s.mode : s.holiday?.theme || 'auto'; setState({ mode: 'holiday', holiday: { ...(s.holiday || {}), theme: th, kick: Date.now() } }); toast('Surprise!'); }
     else option(1);
   }
   function bright(d) {

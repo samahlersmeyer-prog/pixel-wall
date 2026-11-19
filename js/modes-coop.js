@@ -5,8 +5,8 @@
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=34';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=34';
+import { W, H } from './renderer.js?v=35';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=35';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -313,11 +313,21 @@ export function drawCoop(f, st, data, t, now) {
   if (S.coopLast === undefined || t - S.coopLast > 3000 || t < S.coopLast) S.coopStart = t;
   S.coopLast = t;
   const kick = data.kick;
-  if (kick && kick.n % (DAY_EVENTS.length + 1) === DAY_EVENTS.length && t >= kick.t && S.coopKick !== kick.n) { S.coopKick = kick.n; S.coopStart = kick.t; }
+  // "Let the chickens out!" from the phone: play the morning now and keep them out for an hour.
+  const outNow = st.coop?.outNow, nowMs = now.getTime();
+  if (outNow && nowMs - outNow < 3600e3 && S.coopOut !== outNow) { S.coopOut = outNow; S.coopStart = t - Math.max(0, nowMs - outNow); S.forceUntil = S.coopStart + 3600e3; }
+  // Surprise: if they're shut in (real sunrise/sunset mode), it lets them out the same way;
+  // otherwise one of its picks replays the morning.
+  const shutIn = st.coop?.real && !(t < (S.forceUntil || 0)) && (realM < sun.rise + 4 || realM > sun.set - 20);
+  if (kick && t >= kick.t && S.coopKick !== kick.n && (shutIn || kick.n % (DAY_EVENTS.length + 1) === DAY_EVENTS.length)) {
+    S.coopKick = kick.n; S.coopStart = kick.t;
+    if (shutIn) S.forceUntil = kick.t + 3600e3;
+  }
+  const real = st.coop?.real && !(t < (S.forceUntil || 0));
   const ms = (t - S.coopStart) / 1000;                     // seconds into the morning
-  const intro = !st.coop?.real && ms < INTRO;
+  const intro = !real && ms < INTRO;
   const after = sun.rise + (sun.set - sun.rise) * 0.62;
-  const m = st.coop?.real ? realM
+  const m = real ? realM
     : ms < 10 ? sun.rise - 20 + ms * 4                        // dawn to sunrise
     : ms < INTRO ? sun.rise + 20 + (after - sun.rise - 20) * ease((ms - 10) / (INTRO - 10)) : after;
   const day = sky(f, m, sun, t);
@@ -332,13 +342,13 @@ export function drawCoop(f, st, data, t, now) {
       const go = MORNING_OUT + ORDER.indexOf(i) * 1.5;
       if (ms < go) return { i, kind, inside: true };
       w = clamp((ms - go) / 2.5);
-    } else if (st.coop?.real) {                          // real time: out just after sunrise, in before sunset
+    } else if (real) {                          // real time: out just after sunrise, in before sunset
       const out0 = sun.rise + 4 + i * 0.1, in0 = sun.set - 20 + i * 0.1;
       if (m < out0 || m > in0 + 0.05) return { i, kind, inside: true };
       if (m < out0 + 0.05) w = (m - out0) / 0.05;
       else if (m > in0) w = 1 - (m - in0) / 0.05;
     }
-    const goingIn = st.coop?.real && m > sun.rise + 60 && w < 1;
+    const goingIn = real && m > sun.rise + 60 && w < 1;
     const wan = Math.sin(t / (6500 + i * 700) + i * 1.7), dwan = Math.cos(t / (6500 + i * 700) + i * 1.7);
     const span = hm.run ? 4 : 8;
     let hx = hm.x + wan * span;
@@ -355,7 +365,7 @@ export function drawCoop(f, st, data, t, now) {
   const list = doorsOpen ? DAY_EVENTS : NIGHT_EVENTS;
   let ev = null, lt = 0, k = 0;
   const kn = doorsOpen && kick ? kick.n % (DAY_EVENTS.length + 1) : kick?.n;
-  if (!intro && kick && t - kick.t >= 0 && kn < list.length) { const e = list[kn % list.length]; if (t - kick.t < e[1]) { ev = e; lt = t - kick.t; k = kick.n; } }
+  if (!intro && kick && S.coopKick !== kick.n && t - kick.t >= 0 && kn < list.length) { const e = list[kn % list.length]; if (t - kick.t < e[1]) { ev = e; lt = t - kick.t; k = kick.n; } }
   if (!ev && !intro) {
     const c = Math.floor((t - START) / EVERY);
     if (c >= 0) {
