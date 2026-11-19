@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="app-version" content="31">
+<meta name="app-version" content="32">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pixel Wall">
@@ -144,7 +144,7 @@
   <section class="card" data-panel="holiday">
     <h2>Holidays</h2>
     <button class="primary" id="surprise" style="margin-bottom:12px">Surprise! Play a scene now</button>
-    <div class="grid2" style="margin-bottom:12px"><button id="fpClock">Fireplace clock: off</button><span></span></div>
+    <div class="grid2" style="margin-bottom:12px"><button id="fpClock">Fireplace clock: off</button><button id="coopReal">Chickens: always out</button></div>
     <div class="list" id="themes"></div>
     <h3>Holiday loop</h3>
     <p class="small">Pick the holidays to cycle through, then start the loop.</p>
@@ -207,15 +207,15 @@
 
 </main>
 
-<script type="module" src="../js/autoupdate.js?v=31"></script>
+<script type="module" src="../js/autoupdate.js?v=32"></script>
 <script type="module">
-import { render, Frame } from '../js/renderer.js?v=31';
-import { LedCanvas } from '../js/led-canvas.js?v=31';
-import { startData, TEAMS } from '../js/data.js?v=31';
-import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=31';
-import { FUN } from '../js/modes-fun.js?v=31';
-import { STATES } from '../js/usmap-data.js?v=31';
-import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=31';
+import { render, Frame } from '../js/renderer.js?v=32';
+import { LedCanvas } from '../js/led-canvas.js?v=32';
+import { startData, TEAMS } from '../js/data.js?v=32';
+import { THEMES, LOOP_DEFAULT } from '../js/modes-holiday.js?v=32';
+import { FUN } from '../js/modes-fun.js?v=32';
+import { STATES } from '../js/usmap-data.js?v=32';
+import { wallId, newWallId, setState, watchState, watchConnection, pairId } from '../js/wall.js?v=32';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -347,6 +347,7 @@ function start() {
     set({ mode: 'holiday', holiday: { ...(state.holiday || {}), theme: 'loop', loop, loopSeconds: loopSecs } });
   };
   $('#fpClock').onclick = () => set({ fireplace: { clock: !state.fireplace?.clock } });
+  $('#coopReal').onclick = () => set({ coop: { ...(state.coop || {}), real: !state.coop?.real } });
   $('#bdSave').onclick = () => {
     if (!$('#bdDate').value) return;
     set({ birthday: { name: $('#bdName').value.trim(), date: $('#bdDate').value }, mode: 'holiday', holiday: { theme: 'birthday' } });
@@ -404,6 +405,8 @@ function start() {
     $$('[data-lsecs]').forEach(b => b.classList.toggle('on', Number(b.dataset.lsecs) === loopSecs));
     $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
     $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
+    $('#coopReal').textContent = state.coop?.real ? 'Chickens: real sunrise/sunset' : 'Chickens: always out';
+    $('#coopReal').classList.toggle('on', !!state.coop?.real);
     const d = state.display || {};
     $$('[data-frame]').forEach(b => b.classList.toggle('on', b.dataset.frame === (d.frame || 'bezel')));
     $$('[data-dots]').forEach(b => b.classList.toggle('on', b.dataset.dots === (d.dots || 'round')));
@@ -419,6 +422,8 @@ function start() {
     $$('[data-fun]').forEach(b => b.classList.toggle('on', state.mode === 'fun' && b.dataset.fun === (state.fun?.view || 'life')));
     $('#fpClock').textContent = `Fireplace clock: ${state.fireplace?.clock ? 'on' : 'off'}`;
     $('#fpClock').classList.toggle('on', !!state.fireplace?.clock);
+    $('#coopReal').textContent = state.coop?.real ? 'Chickens: real sunrise/sunset' : 'Chickens: always out';
+    $('#coopReal').classList.toggle('on', !!state.coop?.real);
     const v = new Set(state.visited || []);
     $$('[data-st]').forEach(b => b.classList.toggle('on', v.has(b.dataset.st)));
     $('#visitedBox').classList.toggle('hidden', !(state.mode === 'map' && state.map?.view === 'visited'));

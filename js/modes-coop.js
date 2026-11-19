@@ -1,12 +1,12 @@
 // Backyard Coop: the family's 17 hens (4 white, 3 black, 5 black-and-white, 4 orange, 1 light yellow)
 // in the yard by the tan shed coop, with the wire run on the left and the gray barn and flag on the right.
-// Runs on real Fort Wayne time: the hens come out a few minutes after sunrise, wander and peck all day,
+// By default it's always a sunny afternoon with the hens out. With the "real sunrise/sunset" setting it runs on real Fort Wayne time: the hens come out a few minutes after sunrise, wander and peck all day,
 // and file back in before sunset; at night the doors are shut under the moon and stars.
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=31';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=31';
+import { W, H } from './renderer.js?v=32';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=32';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -300,8 +300,11 @@ const NIGHT_EVENTS = [[shootingStar, 2500], [owl, 9000]];
 const EVERY = 45000, START = 15000;
 
 export function drawCoop(f, st, data, t, now) {
-  const m = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  const realM = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
   const sun = sunTimes(now), sea = season(now);
+  // By default the hens are always out playing on a sunny afternoon; the "real sunrise/sunset"
+  // setting makes the scene follow the actual time of day instead.
+  const m = st.coop?.real ? realM : sun.rise + (sun.set - sun.rise) * 0.62;
   const day = sky(f, m, sun, t);
   const light = 0.55 + 0.45 * day;                       // never goes too dark on the panels
   treeLine(f, sea, light, t);
@@ -340,7 +343,7 @@ export function drawCoop(f, st, data, t, now) {
       if (off < e[1]) { ev = e; lt = off; k = c; }
     }
   }
-  const eggs = Math.round(13 * clamp((m - sun.rise) / 360));
+  const eggs = Math.round(13 * clamp((realM - sun.rise) / 360));
   const ctx = { hens, yard: out.filter(h => !h.run && h.i !== 16), k, eggs, after: [] };
   // background layers, then the run with its hens behind the wire, then the yard hens in depth order
   run(f, light, false);
