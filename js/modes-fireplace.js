@@ -7,7 +7,7 @@
 // Every other minute Santa visits: candy cane in one stocking, then a present
 // wrapped in that stocking's color goes under the tree. When all seven have
 // one, the whole family comes in, opens them and walks off.
-import { W, H } from './renderer.js?v=27';
+import { W, H } from './renderer.js?v=28';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -301,9 +301,13 @@ function stockingFire(f, lt, p, k, fam) {
 // Once all seven presents are under the tree, the whole family walks in and lines up,
 // each one gets their present (youngest first), tears it open, celebrates, and everyone walks off.
 const PEOPLE = [   // height, hair color, long hair — same order as FAMILY (Sam, Emily, Max, Theo, Junie, Louie, Josie)
-  { h: 19, hair: [70, 45, 25] }, { h: 17, hair: [110, 70, 35], long: true }, { h: 16, hair: [90, 60, 30] },
-  { h: 14, hair: [100, 65, 30] }, { h: 12, hair: [120, 80, 40], long: true }, { h: 11, hair: [110, 75, 35] },
-  { h: 10, hair: [130, 90, 45], long: true },
+  { h: 19, hair: [150, 150, 155] },               // Sam: gray
+  { h: 17, hair: [105, 65, 30], long: true },     // Emily: brown
+  { h: 16, hair: [160, 115, 65] },                // Max: lighter brown
+  { h: 14, hair: [160, 115, 65] },                // Theo: lighter brown
+  { h: 12, hair: [235, 140, 80], long: true },    // Junie: strawberry blonde
+  { h: 11, hair: [160, 115, 65] },                // Louie: lighter brown
+  { h: 10, hair: [250, 215, 110], long: true },   // Josie: blonde
 ];
 const SKIN = [255, 205, 170], PANTS = [50, 60, 110], SHOE = [35, 25, 20];
 const TOYS = [[255, 60, 60], [80, 200, 255], [255, 220, 60], [140, 255, 120], [230, 120, 255], [255, 255, 255], [255, 150, 40]];
