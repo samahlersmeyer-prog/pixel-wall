@@ -5,8 +5,8 @@
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=36';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=36';
+import { W, H } from './renderer.js?v=37';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=37';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -323,74 +323,83 @@ function scatter(ctx, cx, cy, reach = 20) {
   }
 }
 
-// The blue Club Car with the tan roof, two family members picked at random.
+// The navy Club Car with the cream roof: two up front, one or two on the rear-facing back seat,
+// and sometimes somebody's holding one of the black-and-white hens.
 function golfCart(f, lt, p, ctx) {
-  const dir = rnd(ctx.k * 1.7) < 0.5 ? 1 : -1, len = 24, G = 60;
+  const dir = rnd(ctx.k * 1.7) < 0.5 ? 1 : -1, len = 30, G = 60;
   const x = dir > 0 ? -len - 2 + p * (W + len + 6) : W + 2 - p * (W + len + 6);
-  const drivers = [0, 1, 2], d = drivers[Math.floor(rnd(ctx.k * 2.3) * 3)];
-  let q = Math.floor(rnd(ctx.k * 4.1) * 7); if (q === d) q = (q + 3) % 7;
-  scatter(ctx, x + len / 2, 55, 24);
+  const r = n => rnd(ctx.k * 3.1 + n);
+  const d = [0, 1, 2][Math.floor(r(1) * 3)];
+  const others = [0, 1, 2, 3, 4, 5, 6].filter(i => i !== d).sort((a, b) => r(a + 10) - r(b + 10));
+  const front = others[0], back = others.slice(1, r(2) < 0.5 ? 2 : 3);
+  const chickenLap = r(3) < 0.5;
+  scatter(ctx, x + len / 2, 55, 26);
   ctx.after.push(() => {
     const P = pen(f, x, G, len, dir), L = c => c.map(v => v * ctx.light);
-    const blue = L([25, 85, 205]), tan = L([215, 192, 145]), blk = L([20, 20, 22]);
-    P.r(2, -16, 19, 2, tan); P.r(1, -14, 21, 1, L([175, 150, 110]));        // tan roof
-    P.r(4, -13, 1, 7, L([150, 150, 155])); P.l(19, -13, 21, -7, L([170, 200, 230]));   // rear post + windshield
-    rider(P, 8, -12, PEOPLE[q], FAMILY[q].color, ctx.light);              // passenger
-    rider(P, 14, -12, PEOPLE[d], FAMILY[d].color, ctx.light);             // driver
-    P.l(17, -8, 19, -9, blk);                                              // steering wheel
-    P.r(5, -10, 2, 4, blk);                                                // seat back
-    P.r(1, -6, 22, 3, blue); P.r(18, -7, 5, 1, blue); P.r(0, -5, 1, 2, blue);   // body
-    P.p(23, -5, L([255, 250, 200]));                                       // headlight
-    P.r(2, -3, 20, 1, L([15, 50, 130]));
-    for (const wx of [5, 18]) { P.d(wx, -1.5, 1.8, blk); P.p(wx, -2, L([170, 170, 175])); }
-    for (let i = 0; i < 3; i++) {                                          // a little dust
+    const navy = L([35, 60, 140]), navyD = L([22, 38, 95]), cream = L([228, 218, 192]), blk = L([20, 20, 22]), seat = L([215, 195, 150]);
+    P.r(5, -17, 22, 2, cream); P.r(6, -15, 20, 1, L([190, 180, 155]));     // cream roof
+    P.r(9, -15, 1, 9, blk); P.r(24, -15, 1, 8, blk);                        // roof posts
+    P.l(25, -14, 27, -8, L([175, 205, 235]));                               // windshield
+    // rear-facing back seat with its grab bar and foot rest
+    P.r(1, -12, 1, 6, blk); P.r(1, -12, 3, 1, blk); P.r(0, -4, 5, 1, blk);
+    back.forEach((who, j) => rider(pen(f, x, G, len, -dir), len - 8 - j * 4, -12, PEOPLE[who], FAMILY[who].color, ctx.light));
+    P.r(5, -7, 5, 1, seat); P.r(10, -11, 1, 5, seat);                        // back seat + seat backs
+    rider(P, 12, -12, PEOPLE[front], FAMILY[front].color, ctx.light);       // front passenger
+    rider(P, 18, -12, PEOPLE[d], FAMILY[d].color, ctx.light);               // driver
+    if (chickenLap) { P.r(12, -9, 3, 2, L([70, 70, 75])); P.p(13, -9, L([235, 235, 235])); P.p(15, -10, L([220, 30, 30])); }   // a hen on a lap
+    P.l(21, -8, 23, -9, blk);                                               // steering wheel
+    P.r(1, -6, 28, 3, navy); P.r(22, -7, 7, 1, navy); P.r(26, -8, 3, 1, navy);    // body + front cowl
+    P.r(1, -6, 28, 1, L([60, 90, 175]));                                    // shine
+    P.r(1, -3, 28, 1, navyD);
+    P.p(29, -6, L([255, 250, 200]));                                        // headlight
+    for (const wx of [6, 24]) { P.d(wx, -1.5, 1.9, blk); P.p(wx, -2, L([190, 190, 195])); }
+    for (let i = 0; i < 3; i++) {
       const k = ((lt / 400) + i / 3) % 1;
       P.p(-1 - k * 5, -1 - k * 2, L([170, 150, 120]).map(v => v * (1 - k)));
     }
   });
 }
 
-// Sam on the 60" Cub Cadet: three-bag catcher with the Terra lawn leaf bag over the back.
+// Sam (gray hoodie) on the yellow Cub Cadet zero-turn, the big tan Terra lawn bag dragging behind on its hose.
 // Two passes across the yard, leaving fresh stripes (and, in the fall, no leaves) behind.
 function mowing(f, lt, p, ctx) {
   if (ctx.sea === 'winter') return golfCart(f, lt, Math.min(1, p * 24 / 9), ctx);   // no mowing in the snow
-  const len = 26, L = c => c.map(v => v * ctx.light);
+  const len = 32, L = c => c.map(v => v * ctx.light);
   const pass = p < 0.5 ? 0 : 1, q = pass ? (p - 0.5) / 0.5 : p / 0.5;
   const dir = pass ? -1 : 1, G = pass ? 54 : 62;
   const x = dir > 0 ? -len - 4 + q * (W + len + 8) : W + 4 - q * (W + len + 8);
   const front = dir > 0 ? x + len : x;
   const stripe = L(ctx.sea === 'fall' ? [150, 220, 100] : [140, 235, 110]);
-  // fresh-cut stripes: the near band (first pass), the far band (second pass)
   const nearTo = pass ? W : Math.max(0, Math.min(W, front - 4));
   if (nearTo > 0) for (let y = 56; y < 63; y++) f.rect(0, y, nearTo, 1, stripe.map(v => v * (y % 2 ? 1 : 0.96)));
   if (pass) { const from = Math.max(0, Math.min(W, front + 4)); for (let y = 48; y < 55; y++) f.rect(from, y, W - from, 1, stripe.map(v => v * (y % 2 ? 1 : 0.96))); }
-  scatter(ctx, x + len / 2, G - 4, 26);
-  const fill = clamp(p * 1.1);                                              // the leaf bag puffs up as it fills
+  scatter(ctx, x + len / 2, G - 4, 28);
+  const fill = clamp(p * 1.1);
   ctx.after.push(() => {
     const P = pen(f, x, G, len, dir);
-    const yel = L([250, 200, 0]), blk = L([22, 22, 24]), gray = L([90, 90, 95]);
-    // Terra lawn leaf bag over the back of the bagger
-    const bh = 9 + Math.round(fill * 3), bw = 8 + Math.round(fill * 2);
-    for (let yy = 0; yy < bh; yy++) for (let xx = 0; xx < bw; xx++) {
-      const edge = (yy === 0 || xx === 0) && (xx + yy) < 2;
-      if (edge) continue;
-      const mesh = (xx + yy) % 2 ? [55, 95, 55] : [75, 120, 70];
-      P.p(8 - bw + xx, -2 - bh + yy, L(mesh));
+    const yel = L([250, 195, 0]), blk = L([22, 22, 24]), tan = L([205, 165, 110]), tanD = L([170, 130, 85]);
+    // the Terra lawn bag: a big tan sack lying behind, swelling as it fills
+    const bl = 13 + Math.round(fill * 2), bh = 5 + Math.round(fill * 3);
+    for (let xx = 0; xx < bl; xx++) {
+      const hgt = Math.round(bh * (0.55 + 0.45 * Math.sin(Math.PI * (xx + 1) / (bl + 1))));
+      for (let yy = 0; yy < hgt; yy++) P.p(xx, -yy - 1, yy < hgt * 0.45 && xx > 1 && xx < bl - 2 ? tanD : tan);
     }
-    P.r(7, -12, 3, 9, blk);                                                // bagger hopper
-    P.l(11, -3, 8, -10, gray); P.l(12, -3, 9, -10, gray);                  // chute from deck to bagger
-    P.r(9, -5, 13, 2, blk);                                                // frame
-    P.r(10, -3, 13, 2, L([70, 70, 75])); P.r(10, -2, 13, 1, yel);          // 60" deck
-    P.r(15, -8, 8, 3, yel); P.p(23, -7, blk); P.p(22, -8, L([255, 240, 160]));   // hood, grille, headlight
-    P.r(11, -10, 3, 1, blk); P.r(10, -13, 1, 4, blk);                      // seat
-    rider(P, 11, -18, PEOPLE[0], FAMILY[0].color, ctx.light);              // Sam
-    P.l(14, -13, 16, -11, L([255, 205, 170])); P.p(16, -11, blk);          // arm + wheel
-    P.d(11, -2, 2.4, blk); P.p(11, -2, gray); P.d(21, -1, 1.4, blk);       // wheels
-    // clippings and leaves getting sucked up the chute
-    for (let i = 0; i < 6; i++) {
-      const k = ((lt / 260) + i / 6) % 1;
+    P.r(bl - 1, -bh - 1, 3, 3, tan);                                        // bag neck gathered at the hose
+    P.l(bl + 1, -bh, bl + 4, -bh - 1, blk); P.l(bl + 4, -bh - 1, bl + 9, -4, blk); P.l(bl + 4, -bh, bl + 9, -3, blk);   // thick black hose
+    // zero-turn: yellow frame + deck, big rear wheels, tall black seat
+    const m = 16;                                                           // mower starts here (after the bag)
+    P.r(m, -5, 15, 2, yel); P.r(m + 4, -3, 12, 1, yel); P.r(m + 4, -2, 12, 1, L([60, 60, 65]));   // frame + deck
+    P.r(m + 2, -12, 2, 7, blk); P.r(m + 3, -7, 5, 1, blk);                  // high-back seat
+    rider(P, m + 4, -17, { hair: [110, 110, 115] }, [105, 105, 112], ctx.light);   // Sam, gray hood up
+    P.r(m + 4, -17, 3, 1, L([105, 105, 112])); P.p(m + 3, -16, L([105, 105, 112]));
+    P.r(m + 7, -11, 2, 1, L([255, 205, 170])); P.r(m + 8, -12, 1, 4, blk);  // hands on the lap bars
+    P.r(m + 6, -9, 4, 2, L([120, 30, 40]));                                 // shorts
+    P.d(m + 4, -2, 2.6, blk); P.p(m + 4, -2, L([200, 160, 0]));             // big rear drive wheel
+    P.d(m + 14, -1, 1.2, blk);                                              // front caster
+    for (let i = 0; i < 6; i++) {                                           // leaves and clippings up the hose
+      const k = ((lt / 240) + i / 6) % 1;
       const c = ctx.sea === 'fall' && i % 2 ? [200, 110, 30] : [120, 210, 80];
-      P.p(12 - k * 4, -3 - k * 7, L(c));
+      P.p(m + 8 - k * 7, -3 - Math.sin(k * Math.PI) * 4, L(c));
     }
   });
   if (q > 0.15 && q < 0.6 && !pass) f.center('MOWING DAY!', 1, [255, 230, 120]);
@@ -405,7 +414,7 @@ function groundLeaves(f, sea, light) {
   }
 }
 
-const DAY_EVENTS = [[eggLay, 10000], [bugChase, 9000], [wormTug, 10000], [dogsVisit, 9000], [feedTime, 16000], [dustBath, 8000], [golfCart, 9000], [mowing, 24000]];
+const DAY_EVENTS = [[eggLay, 10000], [bugChase, 9000], [wormTug, 10000], [dogsVisit, 9000], [feedTime, 16000], [dustBath, 8000], [golfCart, 10000], [mowing, 26000]];
 const NIGHT_EVENTS = [[shootingStar, 2500], [owl, 9000]];
 const EVERY = 45000, START = 15000;
 const INTRO = 40, MORNING_OUT = 9;                        // morning opening: 40 s, first hen out at 9 s
