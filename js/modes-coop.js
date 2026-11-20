@@ -5,8 +5,8 @@
 // Seasons change the trees and ground (fall leaves, winter snow).
 // About every 45 seconds something happens: an egg gets laid, the yellow hen chases a bug, two hens fight
 // over a worm, the dogs trot through and scatter everybody, Junie brings out feed, or a hen takes a dust bath.
-import { W, H } from './renderer.js?v=35';
-import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=35';
+import { W, H } from './renderer.js?v=36';
+import { DOG, DOG_P, BLACK, BLACK_P, PEOPLE, FAMILY, person } from './modes-fireplace.js?v=36';
 
 const rnd = n => { const x = Math.sin(n * 57.913) * 43758.5453; return x - Math.floor(x); };
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -295,7 +295,117 @@ function owl(f, lt, p) {
   if (p > 0.3 && p < 0.7) f.text('HOOT', 20, 18, [200, 200, 230]);
 }
 
-const DAY_EVENTS = [[eggLay, 10000], [bugChase, 9000], [wormTug, 10000], [dogsVisit, 9000], [feedTime, 16000], [dustBath, 8000]];
+
+// A drawing pen that can face either way: dx counts from the back of a vehicle `len` pixels long.
+function pen(f, x, G, len, dir) {
+  const X = (dx, w = 1) => dir > 0 ? x + dx : x + len - dx - w;
+  return {
+    r: (dx, dy, w, h, c) => f.rect(Math.round(X(dx, w)), G + dy, w, h, c),
+    p: (dx, dy, c) => f.set(Math.round(X(dx)), G + dy, c),
+    d: (dx, dy, rad, c) => f.disc(X(dx) , G + dy, rad, c),
+    l: (dx0, dy0, dx1, dy1, c) => f.line(Math.round(X(dx0)), G + dy0, Math.round(X(dx1)), G + dy1, c),
+  };
+}
+// a seated rider (from the waist up), head top at dy
+function rider(P, dx, dy, who, shirt, light) {
+  const L = c => c.map(v => v * light);
+  P.r(dx, dy, 3, 1, L(who.hair));
+  P.r(dx, dy + 1, 3, 2, L([255, 205, 170]));
+  if (who.long) P.r(dx - 1, dy + 1, 1, 3, L(who.hair));          // long hair falls behind (toward the back)
+  P.p(dx + 2, dy + 1, L([30, 20, 20]));                            // eye, facing forward
+  P.r(dx, dy + 3, 3, 3, L(shirt));
+}
+function scatter(ctx, cx, cy, reach = 20) {
+  for (const h of ctx.hens) {
+    if (h.inside || h.run) continue;
+    const d = h.x - cx;
+    if (Math.abs(d) < reach && Math.abs(h.y - cy) < 9) { h.x += Math.sign(d || 1) * (reach - Math.abs(d)) * 0.8; h.y -= (reach - Math.abs(d)) * 0.12; h.frame = 'flap'; h.left = d < 0; }
+  }
+}
+
+// The blue Club Car with the tan roof, two family members picked at random.
+function golfCart(f, lt, p, ctx) {
+  const dir = rnd(ctx.k * 1.7) < 0.5 ? 1 : -1, len = 24, G = 60;
+  const x = dir > 0 ? -len - 2 + p * (W + len + 6) : W + 2 - p * (W + len + 6);
+  const drivers = [0, 1, 2], d = drivers[Math.floor(rnd(ctx.k * 2.3) * 3)];
+  let q = Math.floor(rnd(ctx.k * 4.1) * 7); if (q === d) q = (q + 3) % 7;
+  scatter(ctx, x + len / 2, 55, 24);
+  ctx.after.push(() => {
+    const P = pen(f, x, G, len, dir), L = c => c.map(v => v * ctx.light);
+    const blue = L([25, 85, 205]), tan = L([215, 192, 145]), blk = L([20, 20, 22]);
+    P.r(2, -16, 19, 2, tan); P.r(1, -14, 21, 1, L([175, 150, 110]));        // tan roof
+    P.r(4, -13, 1, 7, L([150, 150, 155])); P.l(19, -13, 21, -7, L([170, 200, 230]));   // rear post + windshield
+    rider(P, 8, -12, PEOPLE[q], FAMILY[q].color, ctx.light);              // passenger
+    rider(P, 14, -12, PEOPLE[d], FAMILY[d].color, ctx.light);             // driver
+    P.l(17, -8, 19, -9, blk);                                              // steering wheel
+    P.r(5, -10, 2, 4, blk);                                                // seat back
+    P.r(1, -6, 22, 3, blue); P.r(18, -7, 5, 1, blue); P.r(0, -5, 1, 2, blue);   // body
+    P.p(23, -5, L([255, 250, 200]));                                       // headlight
+    P.r(2, -3, 20, 1, L([15, 50, 130]));
+    for (const wx of [5, 18]) { P.d(wx, -1.5, 1.8, blk); P.p(wx, -2, L([170, 170, 175])); }
+    for (let i = 0; i < 3; i++) {                                          // a little dust
+      const k = ((lt / 400) + i / 3) % 1;
+      P.p(-1 - k * 5, -1 - k * 2, L([170, 150, 120]).map(v => v * (1 - k)));
+    }
+  });
+}
+
+// Sam on the 60" Cub Cadet: three-bag catcher with the Terra lawn leaf bag over the back.
+// Two passes across the yard, leaving fresh stripes (and, in the fall, no leaves) behind.
+function mowing(f, lt, p, ctx) {
+  if (ctx.sea === 'winter') return golfCart(f, lt, Math.min(1, p * 24 / 9), ctx);   // no mowing in the snow
+  const len = 26, L = c => c.map(v => v * ctx.light);
+  const pass = p < 0.5 ? 0 : 1, q = pass ? (p - 0.5) / 0.5 : p / 0.5;
+  const dir = pass ? -1 : 1, G = pass ? 54 : 62;
+  const x = dir > 0 ? -len - 4 + q * (W + len + 8) : W + 4 - q * (W + len + 8);
+  const front = dir > 0 ? x + len : x;
+  const stripe = L(ctx.sea === 'fall' ? [150, 220, 100] : [140, 235, 110]);
+  // fresh-cut stripes: the near band (first pass), the far band (second pass)
+  const nearTo = pass ? W : Math.max(0, Math.min(W, front - 4));
+  if (nearTo > 0) for (let y = 56; y < 63; y++) f.rect(0, y, nearTo, 1, stripe.map(v => v * (y % 2 ? 1 : 0.96)));
+  if (pass) { const from = Math.max(0, Math.min(W, front + 4)); for (let y = 48; y < 55; y++) f.rect(from, y, W - from, 1, stripe.map(v => v * (y % 2 ? 1 : 0.96))); }
+  scatter(ctx, x + len / 2, G - 4, 26);
+  const fill = clamp(p * 1.1);                                              // the leaf bag puffs up as it fills
+  ctx.after.push(() => {
+    const P = pen(f, x, G, len, dir);
+    const yel = L([250, 200, 0]), blk = L([22, 22, 24]), gray = L([90, 90, 95]);
+    // Terra lawn leaf bag over the back of the bagger
+    const bh = 9 + Math.round(fill * 3), bw = 8 + Math.round(fill * 2);
+    for (let yy = 0; yy < bh; yy++) for (let xx = 0; xx < bw; xx++) {
+      const edge = (yy === 0 || xx === 0) && (xx + yy) < 2;
+      if (edge) continue;
+      const mesh = (xx + yy) % 2 ? [55, 95, 55] : [75, 120, 70];
+      P.p(8 - bw + xx, -2 - bh + yy, L(mesh));
+    }
+    P.r(7, -12, 3, 9, blk);                                                // bagger hopper
+    P.l(11, -3, 8, -10, gray); P.l(12, -3, 9, -10, gray);                  // chute from deck to bagger
+    P.r(9, -5, 13, 2, blk);                                                // frame
+    P.r(10, -3, 13, 2, L([70, 70, 75])); P.r(10, -2, 13, 1, yel);          // 60" deck
+    P.r(15, -8, 8, 3, yel); P.p(23, -7, blk); P.p(22, -8, L([255, 240, 160]));   // hood, grille, headlight
+    P.r(11, -10, 3, 1, blk); P.r(10, -13, 1, 4, blk);                      // seat
+    rider(P, 11, -18, PEOPLE[0], FAMILY[0].color, ctx.light);              // Sam
+    P.l(14, -13, 16, -11, L([255, 205, 170])); P.p(16, -11, blk);          // arm + wheel
+    P.d(11, -2, 2.4, blk); P.p(11, -2, gray); P.d(21, -1, 1.4, blk);       // wheels
+    // clippings and leaves getting sucked up the chute
+    for (let i = 0; i < 6; i++) {
+      const k = ((lt / 260) + i / 6) % 1;
+      const c = ctx.sea === 'fall' && i % 2 ? [200, 110, 30] : [120, 210, 80];
+      P.p(12 - k * 4, -3 - k * 7, L(c));
+    }
+  });
+  if (q > 0.15 && q < 0.6 && !pass) f.center('MOWING DAY!', 1, [255, 230, 120]);
+}
+
+// fall leaves lying in the yard (the mower picks them up)
+function groundLeaves(f, sea, light) {
+  if (sea !== 'fall') return;
+  for (let i = 0; i < 70; i++) {
+    const x = Math.floor(rnd(i * 2.7 + 5) * W), y = 47 + Math.floor(rnd(i * 4.3 + 1) * 16);
+    f.set(x, y, [[200, 110, 30], [170, 60, 30], [215, 165, 50], [150, 90, 40]][i % 4].map(v => v * light));
+  }
+}
+
+const DAY_EVENTS = [[eggLay, 10000], [bugChase, 9000], [wormTug, 10000], [dogsVisit, 9000], [feedTime, 16000], [dustBath, 8000], [golfCart, 9000], [mowing, 24000]];
 const NIGHT_EVENTS = [[shootingStar, 2500], [owl, 9000]];
 const EVERY = 45000, START = 15000;
 const INTRO = 40, MORNING_OUT = 9;                        // morning opening: 40 s, first hen out at 9 s
@@ -334,6 +444,7 @@ export function drawCoop(f, st, data, t, now) {
   const light = 0.55 + 0.45 * day;                       // never goes too dark on the panels
   treeLine(f, sea, light, t);
   lawn(f, sea, light);
+  groundLeaves(f, sea, light);
   // where every hen is: inside, walking out / in through the door, or at her spot (meandering)
   const hens = FLOCK.map((kind, i) => {
     const hm = home(i);
@@ -376,7 +487,7 @@ export function drawCoop(f, st, data, t, now) {
     }
   }
   const eggs = Math.round(13 * clamp((realM - sun.rise) / 360));
-  const ctx = { hens, yard: out.filter(h => !h.run && h.i !== 16), k, eggs, after: [] };
+  const ctx = { hens, yard: out.filter(h => !h.run && h.i !== 16), k, eggs, after: [], light, sea };
   // background layers, then the run with its hens behind the wire, then the yard hens in depth order
   run(f, light, false);
   for (const h of out) if (h.run) hen(f, h.x, h.y, h.kind, h.frame, h.left, light);

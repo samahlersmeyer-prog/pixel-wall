@@ -1,7 +1,7 @@
 // Firebase connection shared by the TV display and the phone controller.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { firebaseConfig } from './firebase-config.js?v=35';
+import { firebaseConfig } from './firebase-config.js?v=36';
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
