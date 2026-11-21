@@ -1,8 +1,9 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
-import { hsv, W, H } from './renderer.js?v=41';
-import { fireworks } from './modes-holiday.js?v=41';
-import { drawTheo } from './modes-theo.js?v=41';
-import { drawKid, drawAllKids } from './modes-kids.js?v=41';
+import { hsv, W, H } from './renderer.js?v=42';
+import { fireworks } from './modes-holiday.js?v=42';
+import { drawTheo } from './modes-theo.js?v=42';
+import { drawKid, drawAllKids } from './modes-kids.js?v=42';
+import { drawFamily } from './modes-family.js?v=42';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
@@ -158,7 +159,7 @@ function bounce(f, t) {
   } else if (s.hits) f.text(String(s.hits), W - f.textWidth(String(s.hits)) - 1, H - 8, [60, 60, 70]);
 }
 
-export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp'], ['bounce', 'Corner Hit'], ['kids', 'All Kids'], ['theo', 'Theo #22'], ['max', 'Max'], ['louie', 'Louie'], ['junie', 'Junie'], ['josie', 'Josie']];
+export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp'], ['bounce', 'Corner Hit'], ['family', 'Family'], ['kids', 'All Kids'], ['theo', 'Theo #22'], ['max', 'Max'], ['louie', 'Louie'], ['junie', 'Junie'], ['josie', 'Josie']];
 
 export function drawFun(f, st, t) {
   const v = st.fun?.view || 'life';
@@ -168,6 +169,7 @@ export function drawFun(f, st, t) {
   else if (v === 'warp') warp(f, t);
   else if (v === 'plasma') plasma(f, t);
   else if (v === 'bounce') bounce(f, t);
+  else if (v === 'family') drawFamily(f, t);
   else if (v === 'kids') drawAllKids(f, t);
   else if (v === 'theo') drawTheo(f, t);
   else if (['max', 'louie', 'junie', 'josie'].includes(v)) drawKid(f, v, t);
