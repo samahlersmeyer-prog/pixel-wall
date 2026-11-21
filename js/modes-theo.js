@@ -1,6 +1,6 @@
 // Theo #22 — Holy Cross green. A looping highlight reel:
 // jump shot → dribble-drive layup → three over a defender → celebration.
-import { W } from './renderer.js?v=40';
+import { W } from './renderer.js?v=41';
 
 const GREEN = [0, 150, 75], DG = [0, 90, 45], LIME = [60, 220, 120], WHITE = [255, 255, 255];
 const ORANGE = [255, 120, 0], SKIN = [240, 190, 150], HAIR = [150, 100, 55], BLACK = [20, 20, 20];

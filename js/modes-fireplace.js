@@ -7,7 +7,7 @@
 // Every other minute Santa visits: candy cane in one stocking, then a present
 // wrapped in that stocking's color goes under the tree. When all seven have
 // one, the whole family comes in, opens them and walks off.
-import { W, H } from './renderer.js?v=40';
+import { W, H } from './renderer.js?v=41';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
