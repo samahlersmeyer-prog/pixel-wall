@@ -1,9 +1,9 @@
 // One highlight reel per kid, laid out like Theo's: action on the left,
 // a name card on the right that flashes on every big moment.
 // Max: pitching. Louie: hitting. Junie: animals. Josie: coloring + unicorns.
-import { W, H, hsv } from './renderer.js?v=43';
-import { fireworks } from './modes-holiday.js?v=43';
-import { drawTheo } from './modes-theo.js?v=43';
+import { W, H, hsv } from './renderer.js?v=44';
+import { fireworks } from './modes-holiday.js?v=44';
+import { drawTheo } from './modes-theo.js?v=44';
 
 const SCENE = 6000;
 const WHITE = [255, 255, 255], BLACK = [20, 20, 20], SKIN = [240, 190, 150];
@@ -29,6 +29,8 @@ function kid(f, x, base, o) {
   if (o.long) f.rect(x + 2, T, 8, 2, o.hair); else f.rect(x + 3, T, 6, 2, o.hair);
   if (o.cap) { f.rect(x + 3, T, 6, 2, o.cap); f.rect(x + 9, T + 1, 2, 1, o.cap); }
   f.rect(x + 3, T + 2, 6, 5, SKIN); f.set(x + 4, T + 4, BLACK); f.set(x + 7, T + 4, BLACK);
+  if (o.glasses) [3, 5, 6, 8].forEach(i => f.set(x + i, T + 4, [60, 60, 75]));
+  if (o.mask) { f.rect(x + 3, T, 6, 3, o.mask); f.rect(x + 3, T + 5, 6, 2, o.mask); f.rect(x + 2, T + 1, 1, 6, o.mask); f.rect(x + 9, T + 1, 1, 6, o.mask); }
   if (o.long) hairSides();
   const p = o.pose || 'stand';
   const armL = () => f.rect(x, T + 7, 1, 8, SKIN), armR = () => f.rect(x + 11, T + 7, 1, 8, SKIN);
@@ -39,7 +41,7 @@ function kid(f, x, base, o) {
   else if (p === 'load') { armL(); armR(); f.line(x + 2, T + 8, x - 3, T - 3, LEATHER); }
   else if (p === 'swing') { armL(); f.rect(x + 11, T + 10, 3, 2, SKIN); f.line(x + 13, T + 11, x + 25, T + 11, LEATHER); }
   else if (p === 'follow') { armL(); armR(); f.line(x + 8, T + 8, x + 15, T - 3, LEATHER); }
-  else { armL(); armR(); }
+  else if (p !== 'none') { armL(); armR(); }
   f.rect(x + 1, T + 7, 10, 11, o.shirt);
   if (o.num) [...o.num].forEach((d, i) => f.sprite(DIGITS[d], x + 2 + i * 4, T + 9, { '#': o.numColor || RED }));
   if (o.dress) { f.rect(x, T + 15, 12, 5, o.shirt); f.rect(x + 2, T + 20, 3, 4, SKIN); f.rect(x + 7, T + 20, 3, 4, SKIN); }
@@ -298,10 +300,200 @@ const JOSIE = [
   },
 ];
 
+// ---------- SETH: block mining, guitar, cello ----------
+const SETHK = { hair: [50, 35, 25], shirt: [95, 145, 90], pants: [30, 30, 35], glasses: true };
+const NOTE = ['.##', '.#.#', '.#', '##', '##'];
+const notes = (f, t, x0, y0, n = 4) => {
+  for (let i = 0; i < n; i++) {
+    const p = ((t / 1600) + i / n) % 1;
+    f.sprite(NOTE, x0 + i * 7 + Math.sin(p * 6 + i) * 3, y0 - p * 26, { '#': hsv((i * 0.2 + t / 4000) % 1, 0.6, 1) });
+  }
+};
+const arm = (f, x0, y0, x1, y1) => { f.line(x0, y0, x1, y1, SKIN); f.line(x0, y0 + 1, x1, y1 + 1, SKIN); };
+function block(f, x, y, kind) {
+  const base = { grass: [134, 96, 67], dirt: [134, 96, 67], stone: [120, 120, 128], ore: [120, 120, 128] }[kind];
+  f.rect(x, y, 8, 8, base);
+  for (let i = 0; i < 6; i++) f.set(x + (i * 5 + y) % 8, y + (i * 3 + x) % 8, base.map(v => v * 0.75));
+  if (kind === 'grass') { f.rect(x, y, 8, 2, [90, 170, 60]); f.set(x + 2, y + 2, [90, 170, 60]); f.set(x + 6, y + 2, [90, 170, 60]); }
+  if (kind === 'ore') [[1, 2], [5, 1], [3, 5], [6, 6]].forEach(([a, b]) => f.rect(x + a, y + b, 2, 1, [80, 230, 240]));
+}
+const GEMS = [[80, 230, 240], [90, 230, 110], [255, 80, 90], [255, 210, 50]];
+
+const SETH = [
+  (f, k, t) => {   // mining for gems
+    for (let y = 0; y < 40; y++) f.rect(0, y, W, 1, [110 + y, 175 + y, 255]);
+    f.rect(12, 6, 10, 3, WHITE); f.rect(9, 8, 16, 3, WHITE); f.rect(96, 10, 12, 3, WHITE);
+    for (let x = 0; x < W; x += 8) { block(f, x, 40, 'grass'); block(f, x, 48, 'dirt'); block(f, x, 56, 'stone'); }
+    for (const [x, y] of [[40, 32], [48, 32], [48, 24], [56, 24], [56, 32], [56, 16]]) block(f, x, y, y === 16 ? 'grass' : 'stone');
+    const cyc = Math.floor(k / 3000), ck = k % 3000, gem = GEMS[(cyc + Math.floor(t / SCENE)) % 4];
+    if (ck < 2000) {
+      block(f, 32, 32, 'ore');
+      const cracks = Math.floor(ck / 500);
+      for (let i = 0; i < cracks * 3; i++) f.set(33 + (i * 5) % 6, 33 + (i * 3) % 6, BLACK);
+    } else {
+      const p = (ck - 2000) / 1000;
+      for (let i = 0; i < 10; i++) f.set(36 + Math.cos(i) * p * 14, 36 + Math.sin(i) * p * 10 + p * p * 8, [120, 120, 128]);
+      const gy = 34 - p * 14;
+      f.sprite(['.#.', '###', '.#.'], 34, gy, { '#': gem }, 2);
+      if (blink(t, 100)) f.set(39, gy - 1, WHITE);
+    }
+    kid(f, 14, 39, { ...SETHK, pose: 'none' });
+    const up = ck < 2000 && (ck % 500) < 250, hx = 26, hy = 20;   // hand
+    const ang = up ? -2.2 : -0.2, ex = hx + Math.cos(ang) * 11, ey = hy + Math.sin(ang) * 11;
+    arm(f, 25, 20, hx, hy); f.rect(14, 20, 1, 8, SKIN);
+    f.line(hx, hy, ex, ey, [140, 95, 50]);
+    const px = -Math.sin(ang) * 4, py = Math.cos(ang) * 4;
+    f.line(ex - px, ey - py, ex + px, ey + py, [170, 175, 185]);
+    for (let i = 0; i < cyc + (ck >= 2000 ? 1 : 0); i++) f.sprite(['.#.', '###', '.#.'], 2 + i * 5, 2, { '#': GEMS[i % 4] });
+    return { hot: ck >= 2000, call: 'GEM!', y: 12 };
+  },
+  (f, k, t) => {   // guitar on stage
+    f.clear([12, 8, 22]);
+    const flash = k > 3500;
+    for (let y = 0; y < 54; y++) { const w = 4 + y * 0.45; f.rect(28 - w, y, w * 2, 1, flash ? hsv(((t / 600) + y / 80) % 1, 0.5, 0.35) : [45, 40, 60]); }
+    f.rect(0, 54, W, 10, [120, 80, 45]); f.rect(0, 54, W, 1, [160, 110, 60]);
+    f.rect(46, 36, 15, 18, [30, 30, 35]); f.rect(47, 37, 13, 4, [60, 60, 70]);
+    const thump = Math.floor(t / 250) % 2;
+    f.disc(53, 47, 4 + thump, [80, 80, 90]); f.disc(53, 47, 2, [20, 20, 25]);
+    kid(f, 18, 54, { ...SETHK, pose: 'none', dy: flash ? -Math.abs(Math.sin(t / 150)) * 2 : 0 });
+    const T = 28 + (flash ? -Math.round(Math.abs(Math.sin(t / 150)) * 2) : 0);
+    f.line(22, T + 15, 8, T + 7, [110, 70, 35]); f.rect(6, T + 6, 3, 2, [80, 50, 25]);       // neck
+    f.disc(25, T + 17, 4, [200, 75, 40]); f.disc(28, T + 15, 3, [200, 75, 40]); f.disc(26, T + 16, 1, BLACK);
+    arm(f, 19, T + 8, 12, T + 9);                                                            // fret hand
+    const strum = Math.sin(t / 70) * 3;
+    arm(f, 29, T + 8, 28, T + 15 + strum);
+    notes(f, t, 30, 30);
+    return { hot: flash, call: 'ROCK ON!' };
+  },
+  (f, k, t) => {   // cello recital
+    for (let y = 0; y < 54; y++) f.rect(0, y, W, 1, [110 - y, 20, 30]);
+    for (let x = 0; x < W; x += 6) f.rect(x, 0, 2, 54, [80, 10, 20]);
+    f.rect(0, 54, W, 10, [90, 60, 35]);
+    f.line(52, 30, 52, 54, [40, 40, 40]); f.rect(45, 24, 15, 9, WHITE);                     // music stand
+    for (let i = 0; i < 4; i++) f.rect(46, 26 + i * 2, 13, 1, [120, 120, 120]);
+    f.rect(8, 44, 14, 2, [70, 45, 25]); f.rect(9, 46, 2, 8, [70, 45, 25]); f.rect(19, 46, 2, 8, [70, 45, 25]);  // chair
+    kid(f, 9, 52, { ...SETHK, pose: 'none' });
+    f.line(29, 14, 29, 30, [60, 35, 15]);                                                    // cello neck
+    f.disc(29, 36, 5, [170, 85, 35]); f.disc(29, 45, 6, [170, 85, 35]); f.rect(28, 51, 2, 3, [60, 60, 60]);
+    f.set(27, 40, BLACK); f.set(31, 40, BLACK);
+    arm(f, 20, 33, 28, 24);                                                                  // left hand on the neck
+    const bow = Math.sin(t / 400) * 6;
+    f.line(22 + bow, 41, 40 + bow, 39, [230, 220, 190]);
+    arm(f, 20, 34, 24 + bow, 41);
+    notes(f, t, 34, 30, 3);
+    const end = k > 4500;
+    if (end) for (let i = 0; i < 6; i++) heart(f, (i * 13 + 3) % 60, ((t / 30 + i * 11) % 60) - 6, [255, 80, 100]);
+    return { hot: end, call: 'BRAVO!' };
+  },
+];
+
+// ---------- JUDAH: ninja, nuggets, maze game ----------
+const OR = [215, 110, 45];
+const JUDK = { hair: [150, 105, 60], shirt: OR, pants: [200, 100, 40], socks: OR, shoes: [60, 40, 30] };
+const STAR = ['...#...', '...##..', '##.#...', '.##.##.', '...#.##', '..##...', '...#...'];
+
+const JUDAH = [
+  (f, k, t) => {   // ninja training
+    for (let y = 0; y < 50; y++) f.rect(0, y, W, 1, [190 - y, 150 - y, 100 - y]);
+    for (let x = 0; x < W; x += 16) { f.rect(x, 0, 2, 50, [90, 55, 30]); }
+    f.rect(0, 22, W, 2, [90, 55, 30]);
+    f.rect(0, 50, W, 14, [140, 160, 90]); for (let x = 0; x < W; x += 12) f.rect(x, 50, 1, 14, [110, 130, 70]);
+    f.disc(48, 12, 6, WHITE); f.disc(48, 12, 4, RED); f.disc(48, 12, 2, WHITE); f.set(48, 12, RED);   // target
+    const ninja = { ...JUDK, mask: OR, pants: OR };
+    let hot = false, call = '';
+    if (k < 1200) {   // kicks
+      const kick = Math.floor(k / 300) % 2;
+      kid(f, 14, 50, { ...ninja, pose: 'stand' });
+      if (kick) { f.rect(25, 41, 7, 2, OR); f.rect(31, 40, 2, 3, [60, 40, 30]); }
+    } else if (k < 2400) {   // flip
+      const p = (k - 1200) / 1200, dy = -16 * Math.sin(Math.PI * p);
+      for (let i = 1; i < 5; i++) f.add(20 - i * 2, 40 + dy + i * 2, [60, 40, 20]);
+      kid(f, 14, 50, { ...ninja, pose: 'up', dy });
+    } else if (k < 3600) {   // throwing star
+      const p = clamp((k - 2600) / 500);
+      kid(f, 14, 50, { ...ninja, pose: k < 2700 ? 'throw' : 'stand' });
+      if (p < 1) f.sprite(Math.floor(t / 60) % 2 ? STAR : STAR.map(r => [...r].reverse().join('')), lerp(28, 45, p), lerp(30, 9, p), { '#': [200, 200, 210] });
+      else { f.sprite(STAR, 45, 9, { '#': [200, 200, 210] }); hot = true; call = 'BULLSEYE!'; }
+    } else {   // board chop
+      const broke = k > 4300;
+      f.rect(40, 46, 4, 4, [150, 60, 50]); f.rect(54, 46, 4, 4, [150, 60, 50]);
+      if (!broke) for (let i = 0; i < 3; i++) f.rect(38, 43 - i * 2, 22, 2, i % 2 ? [200, 160, 100] : [180, 140, 85]);
+      else for (let i = 0; i < 3; i++) { const s = (k - 4300) / 80; f.rect(38 - s, 44 - i * 2 + s / 2, 10, 2, [190, 150, 90]); f.rect(50 + s, 44 - i * 2 + s / 2, 10, 2, [190, 150, 90]); }
+      kid(f, 22, 50, { ...ninja, pose: 'none' });
+      const chop = k > 4100 ? 1 : 0;
+      f.rect(22, 31, 1, 8, SKIN);
+      if (chop) f.rect(33, 37, 9, 2, SKIN); else f.rect(33, 23, 2, 9, SKIN);
+      if (broke && k < 4800) for (let i = 0; i < 8; i++) f.set(49 + Math.cos(i) * 6, 40 + Math.sin(i) * 5, GOLD);
+      hot = broke; call = 'HIYAH!';
+    }
+    return { hot, call, y: 26 };
+  },
+  (f, k, t) => {   // nuggets and ranch at the kitchen table
+    f.clear([200, 160, 105]);
+    for (let x = 0; x < W; x += 21) f.rect(x, 0, 1, 40, [160, 120, 75]);
+    f.rect(0, 30, W, 3, [140, 100, 60]);
+    const n = Math.floor(k / 1000), ek = k % 1000, done = k >= 5000, KX = 10, T = 26;
+    kid(f, KX, 52, { ...JUDK, pose: 'none' });
+    f.rect(0, 44, W, 4, [120, 70, 35]); for (let x = 0; x < W; x += 7) f.set(x, 45 + (x % 3), [90, 50, 25]);
+    f.rect(0, 48, W, 16, [90, 50, 25]);
+    f.rect(25, 42, 18, 3, WHITE); f.rect(27, 41, 14, 1, WHITE);
+    for (let i = 0; i < 4; i++) f.set(27 + i * 4, 42, [240, 140, 40]);                       // fall-leaf plate
+    const left = done ? Math.min(5, Math.floor((k - 5000) / 150)) : 5 - n;
+    for (let i = 0; i < left; i++) f.rect(28 + (i % 3) * 3, 40 - Math.floor(i / 3) * 2, 3, 2, [210, 150, 60]);
+    f.rect(38, 39, 4, 3, [240, 240, 235]);                                                    // ranch cup
+    f.rect(52, 28, 6, 16, [245, 240, 225]); f.rect(53, 25, 4, 3, [40, 120, 60]);              // ranch bottle
+    const rest = [KX + 13, T + 13], mouth = [KX + 6, T + 7];
+    let hand = rest, chomp = false;
+    if (!done) {
+      const i = 4 - n, plate = [29 + (i % 3) * 3, 40 - Math.floor(i / 3) * 2], cup = [39, 39];
+      hand = ek < 300 ? [lerp(rest[0], plate[0], ek / 300), lerp(rest[1], plate[1], ek / 300)]
+        : ek < 500 ? [lerp(plate[0], cup[0], (ek - 300) / 200), lerp(plate[1], cup[1], (ek - 300) / 200)]
+        : ek < 800 ? [lerp(cup[0], mouth[0] + 3, (ek - 500) / 300), lerp(cup[1], mouth[1], (ek - 500) / 300)] : rest;
+      if (ek > 250 && ek < 800) { f.rect(hand[0] - 1, hand[1] - 2, 3, 2, [210, 150, 60]); if (ek > 450) f.set(hand[0] + 1, hand[1] - 2, WHITE); }
+      chomp = ek > 750;
+    }
+    arm(f, KX + 11, T + 7, hand[0], hand[1]);
+    f.rect(KX, T + 7, 1, 8, SKIN);
+    if (chomp && blink(t, 80)) f.rect(KX + 5, T + 5, 2, 2, [120, 40, 40]);
+    if (chomp) for (let i = 0; i < 3; i++) f.set(KX + 12 + i * 2, T + 8 + (t / 50 + i) % 4, [210, 150, 60]);
+    return { hot: chomp || done, call: done ? 'SECONDS!' : 'NOM!', y: 4 };
+  },
+  (f, k, t) => {   // maze game: munch the dots, dodge the broccoli
+    f.clear([5, 5, 15]);
+    const M = ['##########', '#........#', '#.##.###.#', '#.#......#', '#.#.##.#.#', '#...##.#.#', '#.#....#.#', '#.##.###.#', '#........#', '##########'];
+    const C = 6, ox = 2, oy = 3;
+    const path = [];
+    for (let c = 1; c <= 8; c++) path.push([c, 1]);
+    for (let r = 2; r <= 8; r++) path.push([8, r]);
+    for (let c = 7; c >= 1; c--) path.push([c, 8]);
+    for (let r = 7; r >= 2; r--) path.push([1, r]);
+    const step = Math.min(path.length - 1, Math.floor(k / 200)), sub = clamp((k % 200) / 200);
+    const eaten = new Set(path.slice(0, step + 1).map(([c, r]) => `${c},${r}`));
+    M.forEach((row, r) => [...row].forEach((ch, c) => {
+      const x = ox + c * C, y = oy + r * C;
+      if (ch === '#') { f.rect(x, y, C, C, [30, 60, 200]); f.rect(x + 1, y + 1, C - 2, C - 2, [10, 20, 80]); }
+      else if (!eaten.has(`${c},${r}`)) f.rect(x + 2, y + 2, 2, 2, r === 8 && c === 8 ? [255, 120, 60] : [255, 220, 150]);
+    }));
+    const [c0, r0] = path[step], [c1, r1] = path[Math.min(path.length - 1, step + 1)];
+    const jx = ox + lerp(c0, c1, sub) * C, jy = oy + lerp(r0, r1, sub) * C;
+    f.rect(jx, jy, 6, 6, OR); f.rect(jx + 1, jy + 1, 4, 4, SKIN); f.set(jx + 2, jy + 2, BLACK); f.set(jx + 4, jy + 2, BLACK);
+    if (blink(t, 100)) f.rect(jx + 2, jy + 4, 2, 1, [120, 40, 40]);
+    const powered = step >= 15 && step < 22;
+    const broc = (x, y) => { f.rect(x + 2, y + 3, 2, 3, [180, 220, 140]); const g = powered ? (blink(t, 120) ? WHITE : [120, 160, 255]) : [40, 160, 60]; f.disc(x + 1, y + 2, 1.5, g); f.disc(x + 4, y + 2, 1.5, g); f.disc(x + 2.5, y + 1, 1.5, g); };
+    const b1 = 3 + Math.abs(((k / 300) % 10) - 5), b2 = 3 + Math.abs(((k / 350) % 6) - 3);
+    broc(ox + Math.min(8, b1) * C, oy + 3 * C);
+    broc(ox + 6 * C, oy + b2 * C);
+    const end = k >= 5600;
+    return { hot: powered || end, call: end ? 'LEVEL UP!' : 'POWER UP!', y: 28 };
+  },
+];
+
 // ---------- the name card (right side, like Theo's) ----------
 const ICONS = {
   ball: { rows: ['..www..', '.rwwwr.', 'wrwwwrw', 'wrwwwrw', 'wrwwwrw', '.rwwwr.', '..www..'], pal: { w: WHITE, r: RED } },
   paw: { rows: ['#.#.#', '#.#.#', '.....', '.###.', '#####', '#####', '.###.'], pal: { '#': PINK } },
+  note: { rows: ['...##..', '...#.#.', '...#..#', '...#...', '.###...', '####...', '.##....'], pal: { '#': [120, 220, 110] } },
+  star: { rows: STAR, pal: { '#': [220, 220, 230] } },
   uni: { rows: ['....y..', '...yw..', '..mwww.', '.mwwkw.', 'mmwwwwp', 'm.ww...', '..ww...'], pal: null },
 };
 const CARDS = {
@@ -309,6 +501,8 @@ const CARDS = {
   louie: { name: 'LOUIE', icon: 'ball', color: LIME, sub: 'SLUGGER', reel: LOUIE },
   junie: { name: 'JUNIE', icon: 'paw', color: PINK, sub: 'ANIMALS', reel: JUNIE },
   josie: { name: 'JOSIE', icon: 'uni', color: PURPLE, sub: 'UNICORNS', reel: JOSIE, rainbowName: true },
+  seth: { name: 'SETH', icon: 'note', color: [120, 220, 110], sub: 'MUSICIAN', reel: SETH },
+  judah: { name: 'JUDAH', icon: 'star', color: [255, 140, 40], sub: 'NINJA', reel: JUDAH },
 };
 
 function card(f, c, hot, t) {
@@ -334,7 +528,7 @@ export function drawKid(f, who, t) {
 }
 
 // All the kids, one after another: each plays its whole reel.
-const ALL = [['theo', 16000], ['max', 18000], ['louie', 18000], ['junie', 18000], ['josie', 18000]];
+const ALL = [['theo', 16000], ['max', 18000], ['louie', 18000], ['junie', 18000], ['josie', 18000], ['seth', 18000], ['judah', 18000]];
 const ALL_LEN = ALL.reduce((a, [, d]) => a + d, 0);
 export function drawAllKids(f, t) {
   let k = t % ALL_LEN;
