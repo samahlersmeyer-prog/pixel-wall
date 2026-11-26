@@ -1,10 +1,10 @@
 // Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo), Christmas drone show.
-import { hsv, W, H } from './renderer.js?v=46';
-import { fireworks } from './modes-holiday.js?v=46';
-import { drawTheo } from './modes-theo.js?v=46';
-import { drawKid, drawAllKids } from './modes-kids.js?v=46';
-import { drawFamily } from './modes-family.js?v=46';
-import { drawDrones } from './modes-drones.js?v=46';
+import { hsv, W, H } from './renderer.js?v=47';
+import { fireworks } from './modes-holiday.js?v=47';
+import { drawTheo } from './modes-theo.js?v=47';
+import { drawKid, drawAllKids } from './modes-kids.js?v=47';
+import { drawFamily } from './modes-family.js?v=47';
+import { drawDrones } from './modes-drones.js?v=47';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
