@@ -1,9 +1,9 @@
 // One highlight reel per kid, laid out like Theo's: action on the left,
 // a name card on the right that flashes on every big moment.
 // Max: pitching. Louie: hitting. Junie: animals. Josie: coloring + unicorns.
-import { W, H, hsv } from './renderer.js?v=45';
-import { fireworks } from './modes-holiday.js?v=45';
-import { drawTheo } from './modes-theo.js?v=45';
+import { W, H, hsv } from './renderer.js?v=46';
+import { fireworks } from './modes-holiday.js?v=46';
+import { drawTheo } from './modes-theo.js?v=46';
 
 const SCENE = 6000;
 const WHITE = [255, 255, 255], BLACK = [20, 20, 20], SKIN = [240, 190, 150];

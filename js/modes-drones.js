@@ -1,7 +1,7 @@
-// Christmas drone show: 300 lit drones lift off a launch pad and fly through 11 Christmas formations, then land.
+// Christmas drone show: 300 lit drones lift off a launch pad and fly through 14 Christmas formations, then land.
 // Stateless: every drone's spot is worked out from t, so the TV, the phone preview and the panels stay in sync.
-import { W, H, Frame } from './renderer.js?v=45';
-import { glyph, advance } from './font.js?v=45';
+import { W, H, Frame } from './renderer.js?v=46';
+import { glyph, advance } from './font.js?v=46';
 
 const N = 400;
 const FLY = 2600, HOLD = 5200, STEP = FLY + HOLD;
@@ -52,6 +52,48 @@ const FORMS = {
       }
     }
     f.disc(64, 32, 3, WHITE);
+  },
+  snowman(f) {
+    for (const [y, r] of [[50, 12], [32, 9], [17, 7]]) f.disc(64, y, r, WHITE);
+    const HAT = [120, 120, 160];
+    f.rect(54, 10, 21, 2, HAT); f.rect(57, 1, 15, 9, HAT); f.rect(57, 7, 15, 2, RED);
+    f.rect(52, 23, 25, 3, RED); f.rect(68, 23, 4, 10, RED);   // scarf
+    f.line(64, 18, 72, 19, [255, 140, 30]); f.set(65, 19, [255, 140, 30]);   // carrot
+    for (const [x, y] of [[61, 15], [67, 15], [59, 20], [61, 21], [64, 22], [67, 21], [69, 20], [64, 29], [64, 34], [64, 45], [64, 51]]) f.set(x, y, [0, 0, 0]);   // coal (gaps)
+    for (const s of [-1, 1]) { f.line(64 + s * 9, 31, 64 + s * 25, 22, BROWN); f.line(64 + s * 21, 24, 64 + s * 24, 18, BROWN); }
+  },
+  sleigh(f) {
+    const TAN = [210, 160, 90];
+    // drawn facing left, then mirrored so the reindeer lead the sleigh to the right
+    for (const x of [22, 48]) {   // two reindeer
+      for (let y = 28; y <= 40; y++) for (let dx = -9; dx <= 9; dx++) if ((dx / 9) ** 2 + ((y - 34) / 4.5) ** 2 <= 1) f.set(x + dx, y, BROWN);
+      f.line(x - 7, 31, x - 11, 24, BROWN); f.line(x - 8, 32, x - 12, 25, BROWN);
+      f.disc(x - 12, 23, 2.5, BROWN);
+      f.line(x - 11, 21, x - 8, 13, TAN); f.line(x - 9, 17, x - 5, 15, TAN); f.line(x - 13, 21, x - 15, 13, TAN); f.line(x - 14, 17, x - 18, 15, TAN);   // antlers
+      for (const [lx, d] of [[6, 3], [3, -2], [-4, 2], [-7, -3]]) f.line(x + lx, 38, x + lx + d, 46, BROWN);   // galloping legs
+    }
+    f.line(31, 33, 40, 33, GOLD); f.line(57, 33, 74, 36, GOLD);   // harness
+    for (let y = 30; y <= 44; y++) { const x0 = 72 + Math.max(0, 36 - y) * 0.5; f.rect(Math.round(x0), y, Math.round(112 - x0), 1, RED); }
+    f.line(70, 48, 114, 48, GOLD); f.line(70, 48, 66, 44, GOLD); f.line(80, 44, 80, 48, GOLD); f.line(104, 44, 104, 48, GOLD);   // runners
+    f.disc(105, 22, 7, [170, 110, 50]);   // the toy sack
+    f.rect(86, 20, 12, 10, RED); f.disc(92, 15, 3, SKIN); f.rect(89, 17, 7, 4, WHITE);   // Santa riding
+    for (let y = 7; y <= 12; y++) f.rect(92 - (y - 7) * 0.6, y, (y - 7) * 1.2 + 1, 1, RED);
+    f.rect(88, 12, 9, 1, WHITE); f.disc(90, 6, 1.2, WHITE);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W / 2; x++) {
+      const a = (y * W + x) * 3, b = (y * W + W - 1 - x) * 3;
+      for (let j = 0; j < 3; j++) [f.buf[a + j], f.buf[b + j]] = [f.buf[b + j], f.buf[a + j]];
+    }
+  },
+  santa(f) {
+    for (let y = 40; y <= 61; y++) { const hw = 14 + (y - 40) * 0.3; f.rect(Math.round(64 - hw), y, Math.round(hw * 2) + 1, 1, RED); }   // suit
+    for (const s of [-1, 1]) { f.rect(64 + s * 22 - 3, 44, 7, 12, RED); f.rect(64 + s * 22 - 3, 56, 7, 2, WHITE); f.disc(64 + s * 22, 60, 2.5, [30, 160, 60]); }   // arms, cuffs, mittens
+    f.rect(46, 52, 37, 3, [0, 0, 0]); f.rect(60, 51, 9, 5, GOLD); f.rect(62, 52, 5, 3, [0, 0, 0]);   // belt + buckle
+    for (let y = 26; y <= 46; y++) for (let x = 46; x <= 82; x++) if (((x - 64) / 16) ** 2 + ((y - 30) / 16) ** 2 <= 1 && y >= 26) f.set(x, y, WHITE);   // beard
+    for (let y = 18; y <= 29; y++) for (let x = 52; x <= 76; x++) if (((x - 64) / 11) ** 2 + ((y - 23) / 6) ** 2 <= 1) f.set(x, y, SKIN);   // face
+    f.set(60, 21, [0, 0, 0]); f.set(68, 21, [0, 0, 0]); f.disc(56, 25, 1.2, [255, 120, 120]); f.disc(72, 25, 1.2, [255, 120, 120]);
+    f.disc(64, 25, 1.5, [255, 150, 130]); f.rect(56, 27, 17, 2, WHITE);   // nose + mustache
+    for (let y = 4; y <= 15; y++) { const hw = (y - 4) * 1.25, cx = 64 + (15 - y) * 0.8; f.rect(Math.round(cx - hw), y, Math.round(hw * 2) + 1, 1, RED); }   // hat
+    f.rect(48, 15, 33, 4, WHITE); f.disc(75, 4, 2.5, WHITE);
   },
   cane(f) {
     const pts = [];
@@ -140,7 +182,7 @@ function textPts(lines) {
 }
 
 // Order = the show. Ground is the launch pad (drones resting, dim); sky is the finale before they land.
-const SHOW = ['ground', 'tree', 'bethlehem', 'snowflake', 'cane', 'wreath', 'bells', 'gift', 'angel', 'manger', 'text', 'sky'];
+const SHOW = ['ground', 'tree', 'bethlehem', 'snowflake', 'snowman', 'cane', 'sleigh', 'santa', 'wreath', 'bells', 'gift', 'angel', 'manger', 'text', 'sky'];
 
 // Space the spots on a grid so no two drones touch (row by row gives the even lattice real shows use),
 // thin out evenly if there are more than N, then sort left-to-right so each drone mostly flies up/down.
@@ -187,7 +229,7 @@ function spot(name, i, k) {
   } else if (name === 'bells' && y > 16) {
     const px = x < 64 ? 46 : 82, a = Math.sin(k * 2.6 + (x < 64 ? 0 : Math.PI)) * 0.3, dx = x - px, dy = y - 17;
     x = px + dx * Math.cos(a) - dy * Math.sin(a); y = 17 + dx * Math.sin(a) + dy * Math.cos(a);
-  }
+  } else if (name === 'sleigh') y += Math.sin(k * 2.4 - x * 0.06) * 1.8;   // riding a wave across the sky
   return [x, y, p.c];
 }
 
