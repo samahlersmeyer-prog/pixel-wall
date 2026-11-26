@@ -1,6 +1,6 @@
 // The whole family, a reel of scenes (SCENE ms each):
 // backyard, game night, devotions, kickball, pickleball.
-import { W, H } from './renderer.js?v=46';
+import { W, H } from './renderer.js?v=47';
 
 const SKIN = [240, 190, 150], BLACK = [20, 20, 20], WHITE = [255, 255, 255], MOUTH = [190, 90, 90];
 const LEATHER = [140, 80, 30], BAT = [225, 185, 120], ORANGE = [255, 120, 0], PINK = [255, 110, 180], GOLD = [255, 200, 40];

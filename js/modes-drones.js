@@ -1,7 +1,7 @@
 // Christmas drone show: 300 lit drones lift off a launch pad and fly through 14 Christmas formations, then land.
 // Stateless: every drone's spot is worked out from t, so the TV, the phone preview and the panels stay in sync.
-import { W, H, Frame } from './renderer.js?v=46';
-import { glyph, advance } from './font.js?v=46';
+import { W, H, Frame } from './renderer.js?v=47';
+import { glyph, advance } from './font.js?v=47';
 
 const N = 400;
 const FLY = 2600, HOLD = 5200, STEP = FLY + HOLD;

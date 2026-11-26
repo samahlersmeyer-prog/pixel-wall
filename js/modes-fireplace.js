@@ -7,7 +7,7 @@
 // Every other minute Santa visits: candy cane in one stocking, then a present
 // wrapped in that stocking's color goes under the tree. When all seven have
 // one, the whole family comes in, opens them and walks off.
-import { W, H } from './renderer.js?v=46';
+import { W, H } from './renderer.js?v=47';
 
 const OX = 26, OY = 22, FW = 76, FH = 36;   // firebox opening
 const rnd = n => { const x = Math.sin(n * 91.345) * 43758.5453; return x - Math.floor(x); };
@@ -160,7 +160,8 @@ function sparks(f, lt, p) {
 const TREE_X = 117, TREE_TOP = 31;                  // star tip / center column
 const TREE_ROWS = [0, 1, 1, 2, 3, 3, 4, 5, 3, 4, 5, 6, 7, 5, 6, 7, 8, 9, 7, 8, 9, 10, 10];  // half-width per row
 const ORN = [[255, 50, 50], [255, 210, 60], [80, 160, 255], [240, 240, 240], [250, 110, 180]];
-function tree(f, t) {
+function tree(f, t, cx = TREE_X, orn = 16, hasStar = true) {
+  const TREE_X = cx;
   const y0 = TREE_TOP + 2;
   TREE_ROWS.forEach((hw, r) => {
     for (let dx = -hw; dx <= hw; dx++) {
@@ -170,12 +171,13 @@ function tree(f, t) {
   });
   f.rect(TREE_X - 1, y0 + TREE_ROWS.length, 3, 3, [95, 55, 25]);   // trunk
   // twinkling ornaments
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < orn; i++) {
     const r = 3 + Math.floor(rnd(i * 3.1) * (TREE_ROWS.length - 4)), hw = TREE_ROWS[r];
     const dx = Math.round((rnd(i * 5.7) * 2 - 1) * (hw - 1));
     const on = Math.floor(t / 600 + rnd(i) * 7) % 4 !== 0;
     f.set(TREE_X + dx, y0 + r, ORN[i % ORN.length].map(v => v * (on ? 1 : 0.35)));
   }
+  if (!hasStar) return;
   // star
   const tw = 0.8 + 0.2 * Math.sin(t / 300);
   const star = [255, 220, 70].map(v => v * tw);
@@ -201,16 +203,31 @@ const SANTA = [
 ];
 const SANTA_P = { W: [245, 245, 245], R: [210, 30, 35], S: [255, 205, 170], K: [25, 20, 20], G: [255, 210, 60] };
 
-// Santa strolls in carrying a present, tucks a candy cane into one stocking (picked like names from a hat),
+// Santa strolls in carrying a present, stops for the cookies and milk on the hearth,
+// tucks a candy cane into one stocking (picked like names from a hat),
 // then sets the present (wrapped in that stocking's color) under the tree and heads out.
-function santaVisit(f, lt, p, k, fam, pileList) {
+const SANTA_DUR = 32000, EAT = 0.25;                // the first quarter of his visit is cookies and milk
+function santaVisit(f, lt, P, k, fam, pileList) {
+  if (P < EAT) {
+    const m = fam[santaPick(k)] || FAMILY[santaPick(k)];
+    const x = Math.round(P < 0.06 ? -14 + ease(P / 0.06) * 20 : 6);
+    const eat = seg(P, 0.08, 0.22);
+    f.sprite(SANTA[P < 0.06 ? Math.floor(lt / 180) % 2 : 0], x, 44, SANTA_P);
+    present(f, x - 4, 54, m);                       // set down beside him while he eats
+    cookies(f, 3 - Math.floor(eat * 3.99), 1 - seg(P, 0.15, 0.22));
+    if (P > 0.08 && P < 0.22 && Math.floor(lt / 300) % 2) f.line(x + 9, 54, 21, 58, [210, 30, 35]);   // reaching for a cookie
+    if (P > 0.08 && P < 0.24) f.text('MMM COOKIES!', 22, 36, [255, 230, 170]);
+    return;
+  }
+  const p = (P - EAT) / (1 - EAT);
+  cookies(f, 0, 0);
   const pileLen = pileList.length;
   const i = santaPick(k), m = fam[i] || FAMILY[i];
   const atStock = STOCK_X[i] - 9;
   const [px, py] = SLOTS[Math.min(pileLen, SLOTS.length - 1)];
   const atTree = px - 12;
   let x;
-  if (p < 0.22) x = -14 + ease(p / 0.22) * (atStock + 14);
+  if (p < 0.22) x = 6 + ease(p / 0.22) * (atStock - 6);
   else if (p < 0.48) x = atStock;
   else if (p < 0.62) x = atStock + ease((p - 0.48) / 0.14) * (atTree - atStock);
   else if (p < 0.74) x = atTree;
@@ -377,7 +394,62 @@ function familyOpen(f, lt, p, k, fam, pileList) {
   if (p > 0.2 && p < 0.8) f.center('MERRY CHRISTMAS', 34, [255, 255, 255].map(v => v * (0.75 + 0.25 * Math.sin(lt / 250))));
 }
 
-const SCENES = [[dogNap, 22000], [santaVisit, 24000], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000], [stockingFire, 18000]];
+
+// ---------- cookies and milk for Santa (left end of the hearth) ----------
+function cookies(f, n, milk) {
+  f.rect(20, 60, 8, 1, [235, 235, 240]); f.rect(21, 61, 6, 1, [200, 200, 210]);          // plate
+  for (let i = 0; i < n; i++) { f.rect(21 + i * 2, 59, 2, 1, [190, 130, 60]); f.set(21 + i * 2, 59, [90, 50, 25]); }
+  if (n === 0) { f.set(22, 59, [190, 130, 60]); f.set(25, 59, [190, 130, 60]); }         // crumbs
+  f.rect(29, 57, 2, 5, [190, 215, 235]);                                                   // glass
+  const lvl = Math.round(milk * 4);
+  if (lvl > 0) f.rect(29, 61 - lvl + 1, 2, lvl, [250, 250, 250]);
+}
+
+// ---------- Christmas Eve opening ----------
+// Every time the fireplace comes on screen: the family carries in the tree and decorates it, everyone hangs
+// their own stocking, Josie leaves cookies and milk for Santa, and they all head off to bed. Then the night plays.
+const INTRO_MS = 50000;
+const SX = j => STOCK_X[j] + 1;
+const KEYS = [   // [seconds, x] for each family member (Sam, Emily, Max, Theo, Junie, Louie, Josie)
+  [[3, 135], [10, 102], [22, 102], [26, SX(0)], [40, SX(0)], [48, -12]],
+  [[10, -10], [14, 76], [22, 76], [26, SX(1)], [40, SX(1)], [48, -12]],
+  [[3, 128], [10, 95], [22, 95], [26, SX(2)], [40, SX(2)], [48, -12]],
+  [[22, -10], [26, SX(3)], [40, SX(3)], [48, -12]],
+  [[10.5, -10], [14.5, 84], [22, 84], [26, SX(4)], [40, SX(4)], [48, -12]],
+  [[22.5, -10], [26.5, SX(5)], [40, SX(5)], [48, -12]],
+  [[11, -10], [15, 89], [22, 89], [26, SX(6)], [34, SX(6)], [37, 23], [39, 23], [48, -12]],
+];
+const HANG = j => 26.5 + j * 1.1;                  // when each stocking goes up
+function at(keys, ms) {
+  if (ms < keys[0][0] || ms > keys[keys.length - 1][0]) return null;
+  for (let i = 1; i < keys.length; i++) if (ms <= keys[i][0]) {
+    const [t0, x0] = keys[i - 1], [t1, x1] = keys[i], q = (ms - t0) / (t1 - t0);
+    return { x: x0 + (x1 - x0) * q, moving: x0 !== x1 };
+  }
+  return null;
+}
+function introState(ms) {
+  return {
+    treeX: ms < 3 ? null : TREE_X + (1 - ease(seg(ms, 3, 10))) * 33,
+    orn: Math.floor(seg(ms, 12, 20) * 16), star: ms > 21,
+    hung: j => seg(ms, HANG(j), HANG(j) + 0.5),
+    plate: ms > 38,
+  };
+}
+function introPeople(f, lt, ms, fam) {
+  for (let j = 0; j < 7; j++) {
+    const a = at(KEYS[j], ms);
+    if (!a) continue;
+    const up = ([1, 4, 6].includes(j) && ms > 12 && ms < 20 && Math.floor(ms * 2 + j) % 3 === 0)
+      || (j === 0 && ms > 20.5 && ms < 22)
+      || (ms > HANG(j) - 0.3 && ms < HANG(j) + 0.9);
+    person(f, Math.round(a.x), 62, PEOPLE[j], (fam[j] || FAMILY[j]).color, a.moving ? Math.floor(lt / 170 + j) % 2 : 0, up);
+  }
+  const msg = ms < 5 ? 'LETS DECORATE!' : ms > 35 && ms < 41 ? 'COOKIES FOR SANTA' : ms > 42 && ms < 49 ? 'GOOD NIGHT!' : null;
+  if (msg) f.center(msg, 34, [255, 235, 180]);
+}
+
+const SCENES = [[dogNap, 22000], [santaVisit, SANTA_DUR], [marshmallow, 14000], [cocoa, 16000], [candyCane, 9000], [sparks, 4000], [stockingFire, 18000]];
 const EVERY = 60000, START = 20000;
 
 // Which stocking gets the candy cane: like drawing names from a hat. Every 7 visits, each of the 7 stockings
@@ -390,13 +462,13 @@ function santaPick(k) {
   return o[v % 7];
 }
 
-function activeScene(t, data) {
+function activeScene(t, T, data) {
   const kick = data.kick;
   if (kick && t - kick.t >= 0) {
     const sc = SCENES[kick.n % SCENES.length];
     if (t - kick.t < sc[1]) return { sc, lt: t - kick.t, k: kick.n, kicked: true };
   }
-  const c = Math.floor((t - START) / EVERY);
+  const c = Math.floor((T - START) / EVERY);
   if (c < 0) return null;
   // Santa comes every other scene (about every 2 minutes, starting 20 seconds in);
   // the other chill scenes take turns in between, shuffled so each plays before any repeats.
@@ -408,7 +480,7 @@ function activeScene(t, data) {
     const order = others.map((_, i) => i).sort((a, b) => rnd(round * 7 + a * 3.3) - rnd(round * 7 + b * 3.3));
     sc = others[order[j % m]];
   }
-  const off = t - START - c * EVERY;
+  const off = T - START - c * EVERY;
   return off < sc[1] ? { sc, lt: off, k: c } : null;
 }
 
@@ -430,7 +502,13 @@ function pile(t, scene) {
 }
 
 export function drawFireplace(f, st, data, t, now) {
-  const scene = activeScene(t, data);
+  // the Christmas Eve opening plays each time the fireplace comes on; the night's timeline starts after it
+  const S = f.fp = f.fp || {};
+  if (S.last === undefined || t - S.last > 3000 || t < S.last) S.start = t;
+  S.last = t;
+  const ms = (t - S.start) / 1000, intro = ms * 1000 < INTRO_MS ? introState(ms) : null;
+  const T = t - S.start - INTRO_MS;
+  const scene = intro ? null : activeScene(t, T, data);
   const flare = scene && scene.sc[0] === sparks ? 1 - scene.lt / 4000 : 0;
   const fire = sim(f, t, flare);
   const glow = 0.75 + 0.12 * Math.sin(t / 230) + 0.08 * Math.sin(t / 97);
@@ -468,20 +546,29 @@ export function drawFireplace(f, st, data, t, now) {
   }
   // Christmas tree with the presents Santa has left so far.
   const fam = st.fireplace?.stockings || FAMILY;
-  tree(f, t);
-  const presents = pile(t, scene);
+  if (!intro) tree(f, t); else if (intro.treeX !== null) tree(f, t, Math.round(intro.treeX), intro.orn, intro.star);
+  const presents = intro ? { list: [], fade: 1 } : pile(T, scene);
   if (!(scene && scene.sc[0] === familyOpen)) presents.list.forEach((s, j) => present(f, SLOTS[j][0], SLOTS[j][1], fam[s] || FAMILY[s], presents.fade));
   // Stockings: mom, dad and the five kids.
   fam.slice(0, 7).forEach((m, i) => {
     const jig = scene && scene.sc[0] === candyCane && scene.k % STOCK_X.length === i && scene.lt < 2500 ? Math.round(Math.sin(scene.lt / 60)) : 0;
-    stocking(f, STOCK_X[i] + jig, 13, m);
+    if (intro && intro.hung(i) <= 0) return;
+    stocking(f, STOCK_X[i] + jig, 13 - (intro ? Math.round((1 - intro.hung(i)) * 4) : 0), m);
   });
+  // cookies and milk: out from the opening on; Santa eats them on his visit, the plate sits empty
+  // for the rest of his minute, then it's refilled
+  if (intro) { if (intro.plate) cookies(f, 3, 1); }
+  else if (!(scene && scene.sc[0] === santaVisit)) {
+    const c = Math.floor((T - START) / EVERY), eaten = c >= 0 && c % 2 === 0 && T - START - c * EVERY >= SANTA_DUR * EAT;
+    cookies(f, eaten ? 0 : 3, eaten ? 0 : 1);
+  }
   // Rising embers.
   for (let i = 0; i < 6; i++) {
     const q = ((t / 2600) + rnd(i)) % 1;
     f.set(OX + 20 + rnd(i + 2) * 36 + Math.sin(q * 6 + i) * 2, OY + FH - 8 - q * 26, [255, 150, 40].map(v => v * (1 - q)));
   }
   if (scene) scene.sc[0](f, scene.lt, scene.lt / scene.sc[1], scene.k, fam, presents.list);
+  if (intro) introPeople(f, t, ms, fam);
   if (st.fireplace?.clock) {
     let hh = now.getHours() % 12 || 12;
     f.center(`${hh}:${String(now.getMinutes()).padStart(2, '0')}`, 0, [255, 220, 170]);
