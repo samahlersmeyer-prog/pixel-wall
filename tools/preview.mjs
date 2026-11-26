@@ -71,6 +71,7 @@ const cases = {
   fun_plasma: [{ mode: 'fun', fun: { view: 'plasma' } }, {}, 3000],
   fun_fireworks: [{ mode: 'fun', fun: { view: 'fireworks' } }, {}, 3000],
   fun_pong: [{ mode: 'fun', fun: { view: 'pong' } }, {}, 3000],
+  fun_drones: [{ mode: 'fun', fun: { view: 'drones' } }, {}, 12000],
   fun_theo: [{ mode: 'fun', fun: { view: 'theo' } }, {}, 800],
   fun_theo_swish: [{ mode: 'fun', fun: { view: 'theo' } }, {}, 1800],
 };
