@@ -1,9 +1,10 @@
-// Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo).
-import { hsv, W, H } from './renderer.js?v=44';
-import { fireworks } from './modes-holiday.js?v=44';
-import { drawTheo } from './modes-theo.js?v=44';
-import { drawKid, drawAllKids } from './modes-kids.js?v=44';
-import { drawFamily } from './modes-family.js?v=44';
+// Fun animations: Game of Life, fireworks, Pong, Matrix rain, warp speed, plasma, Corner Hit (the DVD logo), Christmas drone show.
+import { hsv, W, H } from './renderer.js?v=45';
+import { fireworks } from './modes-holiday.js?v=45';
+import { drawTheo } from './modes-theo.js?v=45';
+import { drawKid, drawAllKids } from './modes-kids.js?v=45';
+import { drawFamily } from './modes-family.js?v=45';
+import { drawDrones } from './modes-drones.js?v=45';
 
 function sim(f, key, init) {
   f.sim = f.sim || {};
@@ -159,7 +160,7 @@ function bounce(f, t) {
   } else if (s.hits) f.text(String(s.hits), W - f.textWidth(String(s.hits)) - 1, H - 8, [60, 60, 70]);
 }
 
-export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp'], ['bounce', 'Corner Hit'], ['family', 'Family'], ['kids', 'All Kids'], ['theo', 'Theo #22'], ['max', 'Max'], ['louie', 'Louie'], ['junie', 'Junie'], ['josie', 'Josie'], ['seth', 'Seth'], ['judah', 'Judah']];
+export const FUN = [['life', 'Game of Life'], ['fireworks', 'Fireworks'], ['pong', 'Pong'], ['matrix', 'Matrix Rain'], ['warp', 'Warp Speed'], ['plasma', 'Lava Lamp'], ['bounce', 'Corner Hit'], ['drones', 'Christmas Drones'], ['family', 'Family'], ['kids', 'All Kids'], ['theo', 'Theo #22'], ['max', 'Max'], ['louie', 'Louie'], ['junie', 'Junie'], ['josie', 'Josie'], ['seth', 'Seth'], ['judah', 'Judah']];
 
 export function drawFun(f, st, t) {
   const v = st.fun?.view || 'life';
@@ -169,6 +170,7 @@ export function drawFun(f, st, t) {
   else if (v === 'warp') warp(f, t);
   else if (v === 'plasma') plasma(f, t);
   else if (v === 'bounce') bounce(f, t);
+  else if (v === 'drones') drawDrones(f, t);
   else if (v === 'family') drawFamily(f, t);
   else if (v === 'kids') drawAllKids(f, t);
   else if (v === 'theo') drawTheo(f, t);
